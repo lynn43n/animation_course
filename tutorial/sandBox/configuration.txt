@@ -1,0 +1,2 @@
+C:\Users\alina\source\repos\EngineForAnimationCourse\tutorial\data\sphere.obj
+C:\Users\alina\source\repos\EngineForAnimationCourse\tutorial\data\cube.obj
