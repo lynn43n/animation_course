@@ -234,7 +234,44 @@ namespace igl
             }
 
             IGL_INLINE void Viewer::fabrik_solver() {
-               //todo
+               //todo  http://devguis.com/chapter-13-implementing-inverse-kinematics-hands-on-c-game-animation-programming.html
+
+                Eigen::Vector3d start_position = data(1).MakeTransd().block(0, 1, 3, 3).col(2);
+                Eigen::Vector3d goal = data(0).MakeTransd().block(0, 1, 3, 3).col(2);
+                int last_index = data_list.size() - 1;
+                double link_size = 1.6;                
+                double size = link_num;
+                double mThreashold = 0.1;
+
+                //check first if we are unable to reach the ball
+                if ((goal - start_position).norm() > link_size * size) {
+                    fabricAnimation = false;
+                    std::cout << "cannot reach" << std::endl;
+                    return;
+                }
+                std::vector<ViewerData> mIKChain;
+
+
+                 
+                // Iterate backwards
+                if (size > 0) {
+                    //mWorldChain[size - 1] = goal;
+
+                }
+                for (int i = size - 2; i >= 0; i--) {
+
+                }
+
+                // Iterate forwards
+                if (size > 0) {
+
+                    //mWorldChain[0] = base;
+                }
+                for (int i = 1; i < size; i++) {
+
+                }
+
+
             }
 
             IGL_INLINE void Viewer::fin_rotate()
