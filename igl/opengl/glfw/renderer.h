@@ -94,8 +94,8 @@ public:
 	// IGL_INLINE void select_hovered_core();
 
 	// Callbacks
-	bool Picking(double x, double y);
-	//double Picking(double x, double y);
+	//bool Picking(double x, double y);
+	double Picking(double x, double y);
 
 	inline void Animate() { scn->Animate(); };
 	IGL_INLINE bool key_pressed(unsigned int unicode_key, int modifier);

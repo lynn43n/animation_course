@@ -145,19 +145,29 @@ namespace igl
                 // Alec: I call this data_list instead of just data to avoid confusion with
                 // old "data" variable.
                 // Stores all the data that should be visualized
+
+
                 std::vector<ViewerData> data_list;
 
-                bool IKon = false;
-
+                
                 size_t selected_data_index;
                 int next_data_id;
                 
+                //Ass 3 must
+                int links_number;
+                Eigen::Vector4d tip;
+                Eigen::Vector3d destination;
+
                 std::vector<int> parents;
-                bool index_selected;
+                bool IKon = false;
                 bool isPicked;
-                bool scene_selected;
                 bool isActive;
 
+
+
+                //not needed
+                bool index_selected;
+                bool scene_selected;
                 // ass 3
                 IGL_INLINE void IKSolver();
                 bool is_IKSolver = false;

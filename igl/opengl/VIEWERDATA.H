@@ -48,6 +48,8 @@ namespace igl
             ViewerData(); 
             typedef std::set<std::pair<double, int> > PriorityQueue;
 
+            IGL_INLINE void drawAxis(Eigen::AlignedBox<double, 3>& alignedBox);
+
             IGL_INLINE bool init_mesh();
 
             IGL_INLINE void deriving_error_quadric();

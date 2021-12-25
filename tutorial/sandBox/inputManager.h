@@ -12,29 +12,40 @@ static void glfw_mouse_press(GLFWwindow* window, int button, int action, int mod
 {
 
 	Renderer* rndr = (Renderer*)glfwGetWindowUserPointer(window);
+	igl::opengl::glfw::Viewer* scn = rndr->GetScene();
 
 	if (action == GLFW_PRESS)
 	{
 		double x2, y2;
 		glfwGetCursorPos(window, &x2, &y2);
-		igl::opengl::glfw::Viewer* scn = rndr->GetScene();
-		bool found = false;
-		int i = 0, savedIndx = scn->selected_data_index;
 
-		for (; i < scn->data_list.size() && !found; i++)
+
+		double depth, closestZ = 1;
+		int i = 0, savedIndx = scn->selected_data_index, lastIndx = scn->selected_data_index;
+
+		for (; i < scn->data_list.size(); i++)
 		{
 			scn->selected_data_index = i;
-			found = rndr->Picking(x2, y2);
+			depth = rndr->Picking(x2, y2);
+			if (depth < 0 && (closestZ > 0 || closestZ < depth))
+			{
+				savedIndx = i;
+				closestZ = depth;
+				std::cout << "--- found " << depth << std::endl;
+			}
 		}
+		scn->selected_data_index = savedIndx;
+		scn->data().set_colors(Eigen::RowVector3d(0.2, 0.7, 0.8));
+		if (lastIndx != savedIndx)
+			scn->data_list[lastIndx].set_colors(Eigen::RowVector3d(255.0 / 255.0, 228.0 / 255.0, 58.0 / 255.0));
 
-		if (!found)
-		{
-			std::cout << "not found " << std::endl;
-			scn->selected_data_index = -1;
-		}
-		else
-			std::cout << "found " << i - 1 << std::endl;
 		rndr->UpdatePosition(x2, y2);
+
+	}
+	else
+	{
+		rndr->GetScene()->isPicked = false;
+
 	}
 }
 
@@ -60,13 +71,10 @@ void glfw_mouse_move(GLFWwindow* window, double x, double y)
 static void glfw_mouse_scroll(GLFWwindow* window, double x, double y)
 {
 	Renderer* rndr = (Renderer*)glfwGetWindowUserPointer(window);
-	if (rndr->GetScene()->selected_data_index == -1)
-		rndr->GetScene()->MyScale(Eigen::Vector3d(1 + y * 0.01, 1 + y * 0.01, 1 + y * 0.01));
-	else if (rndr->GetScene()->selected_data_index > 0)
-		rndr->GetScene()->data(1).MyScale(Eigen::Vector3d(1 + y * 0.01, 1 + y * 0.01, 1 + y * 0.01));
-	else
+	if (rndr->IsPicked())
 		rndr->GetScene()->data().MyScale(Eigen::Vector3d(1 + y * 0.01, 1 + y * 0.01, 1 + y * 0.01));
-	
+	else
+		rndr->GetScene()->MyTranslate(Eigen::Vector3d(0, 0, -y * 0.03), true);
 }
 
 void glfw_window_size(GLFWwindow* window, int width, int height)

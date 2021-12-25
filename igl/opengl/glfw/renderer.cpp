@@ -70,7 +70,7 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 	}
 	for (auto& core : core_list)
 	{
-		//int indx = 0;
+		int indx = 0;
 		for (auto& mesh : scn->data_list)
 		{
 
@@ -83,10 +83,16 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 				//std::cout << "pick: " << scn->isPicked << std::endl;
 				//std::cout << "scene: " << scn->scene_selected << std::endl;
 				//std::cout << "index: " << scn->selected_data_index << std::endl;
+				core.draw(scn->MakeTransScale() * scn->CalcParentsTrans(indx).cast<float>(), mesh);
+
+				//****
+				/*
 				Eigen::Matrix4f temp = Eigen::Matrix4f::Identity();
 				if (mesh.id > 1)
 					temp = (scn->data_list[mesh.id].ParentTrans().cast<float>());
 				core.draw(scn->MakeTransScale() * temp, mesh);
+				*/
+
 				//scn->data_list[3].ParentTrans();
 				/*
 				igl::AABB<Eigen::MatrixXd, 3>* node1 = &scn->data_list[0].kd_tree;
@@ -105,7 +111,7 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 				}
 				*/
 			}
-			//indx++;
+			indx++;
 		}
 
 
@@ -384,64 +390,87 @@ void Renderer::UpdatePosition(double xpos, double ypos)
 	yold = ypos;
 }
 
-void Renderer::MouseProcessing1(int button)
+
+void Renderer::MouseProcessing(int button)
 {
 
-
-	if (button == 1) // right
+	if (scn->isPicked)
 	{
-		if (scn->index_selected)
+		if (button == 1)
 		{
-			scn->data_list[scn->selected_data_index].SetCenterOfRotation(Eigen::Vector3d(-xrel / 100.0f, 0, 0));
-			scn->data_list[scn->selected_data_index].SetCenterOfRotation(Eigen::Vector3d(0, yrel / 100.0f, 0));
+			float near = core().camera_dnear, far = core().camera_dfar, angle = core().camera_view_angle;
+			//float z = far + depth * (near - far);
 
+			Eigen::Matrix4f tmpM = core().proj;
+			double xToMove = -(double)xrel / core().viewport[3] * (z + 2 * near) * (far) / (far + 2 * near) * 2.0 * tanf(angle / 360 * M_PI) / (core().camera_zoom * core().camera_base_zoom);
+			double yToMove = (double)yrel / core().viewport[3] * (z + 2 * near) * (far) / (far + 2 * near) * 2.0 * tanf(angle / 360 * M_PI) / (core().camera_zoom * core().camera_base_zoom);
+
+			if (scn->selected_data_index == 0) {
+				scn->data().MyTranslateInSystem(scn->GetRotation(), Eigen::Vector3d(xToMove, 0, 0));
+				scn->data().MyTranslateInSystem(scn->GetRotation(), Eigen::Vector3d(0, yToMove, 0));
+			}
+			else {
+				scn->data_list[1].MyTranslateInSystem(scn->GetRotation(), Eigen::Vector3d(xToMove, 0, 0));
+				scn->data_list[1].MyTranslateInSystem(scn->GetRotation(), Eigen::Vector3d(0, yToMove, 0));
+			}
+
+			scn->WhenTranslate();
+		}
+		else
+		{
+			scn->data().RotateInSystem(Eigen::Vector3d(1, 0, 0), yrel / 180.0);
+			scn->data().RotateInSystem(Eigen::Vector3d(0, 1, 0), xrel / 180.0);
 
 		}
-		else {
-			scn->MyTranslate(Eigen::Vector3d(-xrel / 100.0f, 0, 0), 0.1);
-			scn->MyTranslate(Eigen::Vector3d(0, yrel / 100.0f, 0), 0.1);
-			//scn->data().SetCenterOfRotation(Eigen::Vector3d(-xrel / 100.0f, 0, 0));
-			//scn->data().SetCenterOfRotation(Eigen::Vector3d(0, yrel / 100.0f, 0));
-		}
-
-
 	}
-	else if (button == 0) // left
+	else
 	{
-		if (scn->index_selected) {
-			scn->data_list[scn->selected_data_index].MyRotate(Eigen::Vector3d(-1, 0, 0), xrel / 180.0f);
-			scn->data_list[scn->selected_data_index].MyRotate(Eigen::Vector3d(0, 1, 0), yrel / 180.0f);
-			//scn->MyRotate(Eigen::Vector3d(1, 0, 0), xrel / 180.0f);
-			//scn->MyRotate(Eigen::Vector3d(0, 0, 1), yrel / 180.0f);
+		if (button == 1)
+		{
+			if (scn->selected_data_index == -1) {
+				scn->MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0), true);
+				scn->MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0), true);
+			}
+			else if (scn->selected_data_index > 0) {
+				scn->data(1).MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0), true);
+				scn->data(1).MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0), true);
+			}
+			else {
+				scn->data().MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0), true);
+				scn->data().MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0), true);
+			}
 		}
-		else {
-			//scn->RotateInSystem(Eigen::Vector3d(1, 0, 0), yrel / 100.0);
-			//scn->RotateInSystem(Eigen::Vector3d(0, 1, 0), xrel / 100.0);
-			scn->MyRotate(Eigen::Vector3d(-1, 0, 0), xrel / 180.0f);
-			scn->MyRotate(Eigen::Vector3d(0, 1, 0), yrel / 180.0f);
+		else
+		{
+			if (scn->selected_data_index == -1) {
+				scn->MyRotate(Eigen::Vector3d(0, -1, 0), xrel / 180.0f, true);
+				scn->MyRotate(Eigen::Vector3d(-1, 0, 0), yrel / 180.0f, false);
+			}
+			else {
+				scn->data().MyRotate(Eigen::Vector3d(0, -1, 0), xrel / 180.0f, true);
+				scn->data().MyRotate(Eigen::Vector3d(-1, 0, 0), yrel / 180.0f, false);
+			}
 		}
-
-
 	}
 }
 
 
-void Renderer::MouseProcessing(int button)
+void Renderer::MouseProcessing1(int button)
 {
 
 	if (button == 1)
 	{
 		if (scn->selected_data_index == -1) {
-			scn->MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0),true);
-			scn->MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0),true);
+			scn->MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0), true);
+			scn->MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0), true);
 		}
 		else if (scn->selected_data_index > 0) {
-			scn->data(1).MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0),true);
-			scn->data(1).MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0),true);
+			scn->data(1).MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0), true);
+			scn->data(1).MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0), true);
 		}
 		else {
-			scn->data().MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0),true);
-			scn->data().MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0),true);
+			scn->data().MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0), true);
+			scn->data().MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0), true);
 		}
 	}
 	else
@@ -548,34 +577,43 @@ Renderer::~Renderer()
 
 
 
-bool Renderer::Picking(double newx, double newy)
+double Renderer::Picking(double newx, double newy)
 {
 	int fid;
 	//Eigen::MatrixXd C = Eigen::MatrixXd::Constant(scn->data().F.rows(), 3, 1);
 	Eigen::Vector3f bc;
 	double x = newx;
 	double y = core().viewport(3) - newy;
-	Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
-	igl::look_at(core().camera_eye, core().camera_center, core().camera_up, view);
-	view = view * (core().trackball_angle * Eigen::Scaling(core().camera_zoom * core().camera_base_zoom)* Eigen::Translation3f(core().camera_translation + core().camera_base_translation)).matrix() * scn->MakeTransScale() * scn->ParentsTrans(scn->selected_data_index).cast<float>() * scn->data().MakeTransScale();
 
-	if (igl::unproject_onto_mesh(Eigen::Vector2f(x, y), view,core().proj, core().viewport, scn->data().V, scn->data().F, fid, bc))
+	Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
+
+	igl::look_at(core().camera_eye, core().camera_center, core().camera_up, view);
+	//std::cout << "view matrix\n" << view << std::endl;
+	view = view * (core().trackball_angle * Eigen::Scaling(core().camera_zoom * core().camera_base_zoom)
+		* Eigen::Translation3f(core().camera_translation + core().camera_base_translation)).matrix() * scn->MakeTransScale() * scn->CalcParentsTrans(scn->selected_data_index).cast<float>() * scn->data().MakeTransScale();
+	bool picked = igl::unproject_onto_mesh(Eigen::Vector2f(x, y), view,
+		core().proj, core().viewport, scn->data().V, scn->data().F, fid, bc);
+	scn->isPicked = scn->isPicked | picked;
+	if (picked)
 	{
 		Eigen::Vector3i face = scn->data().F.row(fid);
-		Eigen::Vector3f vec1 = scn->data().V.row(face[0]).cast<float>();
-		Eigen::Vector3f vec2 = scn->data().V.row(face[2]).cast<float>();
-		Eigen::Vector3f vec3 = scn->data().V.row(face[1]).cast<float>();
+		Eigen::Matrix3d vertices;
+		Eigen::Vector4f p, pp;
 
-		Eigen::Vector3f point = (vec1 * bc[0] + vec2 * bc[1] + vec3 * bc[2]);
+		vertices.col(0) = scn->data().V.row(face(0));
+		vertices.col(1) = scn->data().V.row(face(1));
+		vertices.col(2) = scn->data().V.row(face(2));
 
-		Eigen::Vector4f point_4d = Eigen::Vector4f(point[0], point[1], point[2], 1);
-		point_4d = view * point_4d;
-		//*dist = point_4d.norm();
+		p << vertices.cast<float>() * bc, 1;
+		p = view * p;
+		//std::cout << scn->data().V.row(face(0)) << std::endl;
+		pp = core().proj * p;
+		//glReadPixels(x,  y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+		z = pp(2);
+		return p(2);
 
-		return true;
 	}
-	
-	return false;
+	return 0;
 
 }
 
