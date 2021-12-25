@@ -2,6 +2,7 @@
 #include "igl/opengl/glfw/Display.h"
 #include "igl/opengl/glfw/Renderer.h"
 #include "sandBox.h"
+#include "igl/look_at.h"
 //#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 //#include <igl/opengl/glfw/imgui/ImGuiHelpers.h>
 //#include <../imgui/imgui.h>
@@ -49,6 +50,7 @@ static void glfw_mouse_press(GLFWwindow* window, int button, int action, int mod
 	}
 }
 
+
 //static void glfw_char_mods_callback(GLFWwindow* window, unsigned int codepoint, int modifier)
 //{
 //  __viewer->key_pressed(codepoint, modifier);
@@ -71,9 +73,9 @@ void glfw_mouse_move(GLFWwindow* window, double x, double y)
 static void glfw_mouse_scroll(GLFWwindow* window, double x, double y)
 {
 	Renderer* rndr = (Renderer*)glfwGetWindowUserPointer(window);
-	if (rndr->IsPicked())
+	if (rndr->IsPicked()) //rotation same as arrows
 		rndr->GetScene()->data().MyScale(Eigen::Vector3d(1 + y * 0.01, 1 + y * 0.01, 1 + y * 0.01));
-	else
+	else 
 		rndr->GetScene()->MyTranslate(Eigen::Vector3d(0, 0, -y * 0.03), true);
 }
 
@@ -109,7 +111,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 		case 'A':
 		case 'a':
 		{
-			scn->is_IKSolver = !scn->is_IKSolver;
+			rndr->core().is_animating = !rndr->core().is_animating;
 			break;
 		}
 		case 'F':
@@ -125,10 +127,10 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 			scn->data().invert_normals = !scn->data().invert_normals;
 			break;
 		}
-		case 'L':
-		case 'l':
+		case 'E':
+		case 'e':
 		{
-			rndr->core().toggle(scn->data().show_lines);
+			rndr->core().toggle(scn->data().show_overlay);
 			break;
 		}
 		case 'O':
@@ -137,27 +139,6 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 			rndr->core().orthographic = !rndr->core().orthographic;
 			break;
 		}
-		case '1':
-		case '2':
-		{
-			scn->selected_data_index =
-				(scn->selected_data_index + scn->data_list.size() + (key == '2' ? 1 : -1)) % scn->data_list.size();
-			break;
-		}
-		case 'T':
-		case 't':
-		{
-			scn->printTipPos();
-			break;
-		}
-		case 'p':
-		case 'P':
-			scn->printRotation();
-			break;
-		case 'd':
-		case 'D':
-			scn->printBallPos();
-			break;
 		case '[':
 		case ']':
 		{
@@ -170,32 +151,46 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 		case ':':
 			scn->data().show_faceid = !scn->data().show_faceid;
 			break;
-		case 'n':
-		case 'N':
-			rndr->updateDirection('n');
+		case 'w':
+		case 'W':
+			rndr->TranslateCamera(Eigen::Vector3f(0, 0, 0.03f));
 			break;
-		case 'm':
-		case 'M':
-			rndr->updateDirection('m');
+		case 's':
+		case 'S':
+			rndr->TranslateCamera(Eigen::Vector3f(0, 0, -0.03f));
 			break;
+		case 'T':
+		case 't':
+		{
+			scn->printTip();
+			break;
+		}
+		case 'D':
+		case 'd':
+		{
+			scn->printDestination();
+			break;
+		}
+		case 'P':
+		case 'p':
+		{
+			scn->printP();
+			break;
+		}
 		case GLFW_KEY_UP:
-			rndr->rotateWithKeys(GLFW_KEY_UP);
-			//rndr->updateDirection(GLFW_KEY_UP);
+			(scn->selected_data_index != -1) ? scn->data().MyRotate(Eigen::Vector3d(1, 0, 0), 0.1) : scn->MyRotate(Eigen::Vector3d(1, 0, 0), 0.1);
 			break;
 		case GLFW_KEY_DOWN:
-			rndr->rotateWithKeys(GLFW_KEY_DOWN);
-			//rndr->updateDirection(GLFW_KEY_DOWN);
+			(scn->selected_data_index != -1) ? scn->data().MyRotate(Eigen::Vector3d(1, 0, 0), -0.1) : scn->MyRotate(Eigen::Vector3d(1, 0, 0), -0.1);
 			break;
 		case GLFW_KEY_LEFT:
-			rndr->rotateWithKeys(GLFW_KEY_LEFT);
-			//rndr->updateDirection(GLFW_KEY_LEFT);
+			(scn->selected_data_index != -1) ? scn->data().MyRotate(Eigen::Vector3d(0, 1, 0), -0.1) : scn->MyRotate(Eigen::Vector3d(0, 1, 0), -0.1);
 			break;
 		case GLFW_KEY_RIGHT:
-			rndr->rotateWithKeys(GLFW_KEY_RIGHT);
-			//rndr->updateDirection(GLFW_KEY_RIGHT);
+			(scn->selected_data_index != -1) ? scn->data().MyRotate(Eigen::Vector3d(0, 1, 0), 0.1) : scn->MyRotate(Eigen::Vector3d(0, 1, 0), 0.1);
 			break;
 		case ' ':
-			scn->toggleIK();
+			scn->ikAnimation = !scn->ikAnimation;
 			break;
 		default:
 			Eigen::Vector3f shift;

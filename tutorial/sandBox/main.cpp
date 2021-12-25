@@ -11,9 +11,7 @@ static void drawDotsAndLines(igl::opengl::glfw::Viewer& viewer) {
 		viewer.data_list[i].MyTranslateInSystem(viewer.data_list[i].GetRotation(), Eigen::RowVector3d(0, 0, 1.6));
 		viewer.data_list[i].tree.init(viewer.data_list[i].V, viewer.data_list[i].F);
 		viewer.data_list[i].drawAxis(viewer.data_list[i].kd_tree.m_box);
-
 		viewer.data_list[i].SetCenterOfRotation(Eigen::Vector3d(0, -0.8, 0));
-
 		//viewer.data_list[i].show_overlay_depth = false;
 		//viewer.data_list[i].show_lines = false;
 		/*

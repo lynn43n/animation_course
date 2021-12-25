@@ -123,11 +123,6 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 	}
 
 }
-IGL_INLINE void Renderer::IKSolverAnimation() {
-	if (scn->is_IKSolver) {
-		scn->IKSolver();
-	}
-}
 
 
 IGL_INLINE bool Renderer::is_collistion() {

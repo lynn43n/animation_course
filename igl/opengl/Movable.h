@@ -24,6 +24,8 @@ public:
 
 
 	void SetCenterOfRotation(Eigen::Vector3d amt);
+	Eigen::Vector3d getCenterOfRotationTout();
+	Eigen::Vector3d GetCenterOfRotation();
 	Eigen::Vector3d getCenterOfRotation();
 	void setCenterOfRot(Eigen::Vector3d new_center);
 	void MyTranslateInSystem(Eigen::Matrix3d rot, Eigen::Vector3d amt);

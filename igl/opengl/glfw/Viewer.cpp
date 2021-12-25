@@ -42,16 +42,11 @@
 #include <igl/unproject.h>
 #include <igl/serialize.h>
 
-
-#include <igl/edge_flaps.h>
-#include <igl/shortest_edge_and_midpoint.h>
-
 // Internal global variables used for glfw event handling
 //static igl::opengl::glfw::Viewer * __viewer;
 static double highdpi = 1;
 static double scroll_x = 0;
 static double scroll_y = 0;
-using namespace std;
 
 
 namespace igl
@@ -61,15 +56,11 @@ namespace igl
         namespace glfw
         {
 
-            typedef std::set<std::pair<double, int> > PriorityQueue;
-
             void Viewer::Init(const std::string config)
             {
 
 
             }
-
-
 
             IGL_INLINE Viewer::Viewer() :
                 data_list(1),
@@ -78,12 +69,12 @@ namespace igl
                 isPicked(false),
                 isActive(false),
                 tip(Eigen::Vector4d(0, 0, 0, 0)),
-                links_number(0),
-                destination(Eigen::Vector3d(5, 0, 0))
+                link_num(0),
+                destination(Eigen::Vector3d(5, 0, 0)),
+                ikAnimation(false),
+                fabricAnimation(false)
             {
                 data_list.front().id = 0;
-
-
 
                 // Temporary variables initialization
                // down = false;
@@ -116,126 +107,183 @@ namespace igl
             {
             }
 
+            void Viewer::SetNewShape(int savedIndex) {
+                parents.push_back(-1);
+                data_list.back().set_visible(false, 1);
 
-
-            void Viewer::toggleIK() {
-                if (IKon == true) {
-                    fixAxis();
-                }
-                IKon = !IKon;
+                data_list.back().set_visible(true, 2);
+                data_list.back().show_faces = 3;
+                selected_data_index = savedIndex;
+                int last_index = data_list.size() - 1;
+                if (last_index > 1)
+                    parents[last_index] = last_index - 1;
             }
 
-            void Viewer::animateIK() {
-                Eigen::Vector4d root4 = data_list[1].MakeTransScaled() * Eigen::Vector4d(0, -0.8, 0, 1);
-                Eigen::Vector3d root = Eigen::Vector3d(root4[0], root4[1], root4[2]);
+            double Viewer::legalRange(double num) {
+                if (num > 1)
+                    num = 1;
+                if (num < -1)
+                    num = -1;
+                return num;
+            }
 
-                Eigen::Vector4d ball4 = data_list[0].MakeTransScaled() * Eigen::Vector4d(0, 0, 0, 1);
-                Eigen::Vector3d ball = Eigen::Vector3d(ball4[0], ball4[1], ball4[2]);
+            void Viewer::printTip() {
+                int lastLinkidx = link_num;
+                tip = CalcParentsTrans(lastLinkidx) *data(lastLinkidx).MakeTransd() *
+                    Eigen::Vector4d(data(lastLinkidx).V.colwise().mean()[0], data(lastLinkidx).V.colwise().maxCoeff()[1],data(lastLinkidx).V.colwise().mean()[2], 1);
+                std::cout << "tip: (" << tip.head(3).transpose() << ")" << std::endl;
+            }
+            void Viewer::printDestination() {
+                destination = data(0).MakeTransd().col(3).head(3);
+                std::cout << "destination: (" << destination.transpose() << ")" << std::endl;
+            }
+            void Viewer::printP() {
+                int idx = selected_data_index;
+                Eigen::Matrix3d mat = idx == -1 ? MakeTransd().block(0, 0, 3, 3) : data().MakeTransd().block(0, 0, 3, 3);
+                std::cout << "rotation of " << idx << ": " << std::endl;
+                std::cout << mat << std::endl;
+            }
 
-                double dist = (root - ball).norm();
+            IGL_INLINE Eigen::Matrix4d Viewer::MakeParentTrans(int mesh_id) {
+                if (parents[mesh_id] == -1 || parents[mesh_id] == mesh_id)
+                    return Eigen::Transform<double, 3, Eigen::Affine>::Identity().matrix();
+                Eigen::Matrix4d t = data_list[parents[mesh_id]].MakeTransd();
+                Eigen::Matrix4d tp = MakeParentTrans(parents[mesh_id]);
+                return MakeParentTrans(parents[mesh_id]) * data_list[parents[mesh_id]].MakeTransd();
+            }
 
-                if (dist > 6.4) { //6.4 is arm length fully extended
-                    cout << "cannot reach" << endl;
-                    IKon = false;
+            IGL_INLINE Eigen::Matrix3d Viewer::GetParentsRotationInverse(int index) {
+
+                Eigen::Matrix3d parentsInverse = data(index).GetRotation().inverse();
+                int i = parents[index];
+                while (i != -1)
+                {
+                    parentsInverse = parentsInverse * data(i).GetRotation().inverse();
+                    i = parents[i];
+                }
+
+                return parentsInverse;
+            }
+
+            IGL_INLINE void Viewer::ik_solver() {
+                int last_index = data_list.size() - 1;
+                double link_size = 1.6;
+                double num_of_links = link_num;
+
+                Eigen::Vector3d ball = data(0).MakeTransd().block(0, 1, 3, 3).col(2);
+                Eigen::Vector3d arm_base = data(1).MakeTransd().block(0, 1, 3, 3).col(2);
+                //check first if we are unable to reach the ball
+                if ((ball - arm_base).norm() > link_size * num_of_links) {
+                    ikAnimation = false;
+                    std::cout << "cannot reach" << std::endl;
                     return;
                 }
-                Eigen::Vector4d E4;
-                Eigen::Vector3d E;
-                for (int i = links_number; i > 0; i--) {
-                    E4 = ParentsTrans(links_number) * data_list[links_number].MakeTransScaled() * Eigen::Vector4d(0, 0.8, 0, 1);
-                    E = Eigen::Vector3d(E4[0], E4[1], E4[2]);
-                    dist = (E - ball).norm();
 
-                    Eigen::Vector4d R4 = ParentsTrans(i) * data_list[i].MakeTransScaled() * Eigen::Vector4d(0, -0.8, 0, 1);
-                    Eigen::Vector3d R = Eigen::Vector3d(R4[0], R4[1], R4[2]);
+                int i = last_index;
+                while (i != -1 || i > last_index)
+                {
+                    Eigen::Vector4d rCenter(data(i).GetCenterOfRotation()[0], data(i).GetCenterOfRotation()[1], data(i).GetCenterOfRotation()[2], 1);
+                    Eigen::Vector4d r4 = MakeParentTrans(i) * data(i).MakeTransd() * rCenter;
 
-                    Eigen::Vector3d RE = E - R;
-                    Eigen::Vector3d RD = ball - R;
+                    Eigen::Vector4d eCenter(data(last_index).GetCenterOfRotation()[0], data(last_index).GetCenterOfRotation()[1] + 1.6, data(last_index).GetCenterOfRotation()[2], 1);
+                    Eigen::Vector4d e4 = MakeParentTrans(last_index) * data(last_index).MakeTransd() * eCenter;
 
-                    float dot = RD.normalized().dot(RE.normalized());
-                    float alphaRad = acosf(dot); //alpah in radians
-                    if (dist > 0.3)
-                        alphaRad = alphaRad / 20;
-                    if (dot >= 1.0)
-                        alphaRad = 0;
+                    Eigen::Vector3d rd = ball - r4.head<3>();
+                    Eigen::Vector3d re = e4.head<3>() - r4.head<3>();
 
-                    Eigen::Vector3d cros = RE.cross(RD);
-                    cros.normalize();
-                    cros = ParentsInverseRot(i) * cros;
-                    data_list[i].MyRotate(cros, alphaRad, false);
-                    // ----- Debug Prints ----
-                    //float alpha =  alphaRad / M_PI * 180.0; //alpha in degrees
-                    //cout << "R: " << endl << R << endl << "E: " << endl << E << endl;
-                    //cout << "RE: " << endl << RE << endl << "RD: " << endl << RD << endl;
-                    //cout << "alpha: " << alphaRad << endl;
-                    //cout << "dot: " << dot << endl;
+                    double distance = (ball - e4.head<3>()).norm();
+                    //we have reached the ball
+                    if (distance < 0.1) {
+                        std::cout << "distance: " << distance << std::endl;
+                        ikAnimation = false;
+                        fin_rotate();
+                        return;
+                    }
+
+                    Eigen::Vector3d rotation_axis = GetParentsRotationInverse(i) * re.cross(rd).normalized();
+                    double dot = legalRange(rd.normalized().dot(re.normalized()));
+                    double angle = distance < 1 ? acosf(dot) : acosf(dot) / 10;
+
+                    int parent_i = parents[i];
+                    if (parent_i != -1) {
+                        //update the vector re
+                        data(i).MyRotate(rotation_axis, angle);
+                        eCenter = Eigen::Vector4d(data(last_index).GetCenterOfRotation()[0], data(last_index).GetCenterOfRotation()[1] + 1.6, data(last_index).GetCenterOfRotation()[2], 1);
+                        re = (MakeParentTrans(last_index) * data(last_index).MakeTransd() * eCenter).head<3>() - r4.head<3>();
+
+                        //get parents vector
+                        Eigen::Vector4d parent_rCenter(data(parent_i).GetCenterOfRotation()[0], data(parent_i).GetCenterOfRotation()[1], data(parent_i).GetCenterOfRotation()[2], 1);
+                        Eigen::Vector3d parent_vec = (MakeParentTrans(parent_i) * data(parent_i).MakeTransd() * parent_rCenter).head<3>() - r4.head<3>();
+                        double parent_dot = legalRange(parent_vec.normalized().dot(re.normalized()));
+
+                        //the angle between re and the parent vector
+                        double parent_angle = acosf(parent_dot);
+                        double deg2rad = 0.017453292;
+
+                        //we want the angle to not be less than 30 degrees
+                        double fix = 0;
+                        if (parent_angle < 30 * deg2rad) {
+                            fix = (30 * deg2rad) - parent_angle;
+                        }
+                        data(i).MyRotate(rotation_axis, -angle);
+                        angle -= fix;
+                    }
+                    data(i).MyRotate(rotation_axis, angle);
+                    i = parents[i];
                 }
-                E4 = ParentsTrans(links_number) * data_list[4].MakeTransScaled() * Eigen::Vector4d(0, 0.8, 0, 1);
-                E = Eigen::Vector3d(E4[0], E4[1], E4[2]);
-                dist = (E - ball).norm();
-                if (dist < 0.1 || IKon == false) {
-                    IKon = false;
-                    fixAxis();
-                }
-                cout << "Distance: " << dist << endl;
             }
 
-            void Viewer::fixAxis() {
-                float firstY = 0;
-                for (int i = 1; i <= links_number; i++) {
-                    Eigen::Matrix3d RU = data_list[i].GetTout().rotation().matrix();
-                    if (RU(1, 1) < 1.0) {
-                        if (RU(1, 1) > -1.0) {
-                            float y = atan2f(RU(1, 0), -RU(1, 2));
-                            data_list[i].MyRotate(Eigen::Vector3d(0, 1, 0), -y, false);
-                            if (i != links_number) {
-                                data_list[i + 1].MyRotate(Eigen::Vector3d(0, 1, 0), y, true);
-                            }
+            IGL_INLINE void Viewer::fabrik_solver() {
+               //todo
+            }
+
+            IGL_INLINE void Viewer::fin_rotate()
+            {
+                Eigen::Vector3d Z(0, 0, 1);
+                Eigen::Matrix3d prev_z = Eigen::Matrix3d::Identity();
+                Eigen::Matrix3d new_z = Eigen::Matrix3d::Identity();
+                for (int i = 1; i <= data_list.size() - 1; i++) {
+
+                    double angleZ0;
+                    double angleY;
+                    double angleZ1;
+
+                    Eigen::Matrix3d R = data(i).GetRotation();
+                    double r00 = R.row(0)[0];  // ux
+                    double r01 = R.row(0)[1];  // uy
+                    double r02 = R.row(0)[2];  // uz
+                    double r10 = R.row(1)[0];  // vx
+                    double r11 = R.row(1)[1];  // vy
+                    double r12 = R.row(1)[2];  // vz
+                    double r20 = R.row(2)[0];  // wx
+                    double r21 = R.row(2)[1];  // wy
+                    double r22 = R.row(2)[2];  // wz
+
+              
+                    if (r12 < 1) {
+                        if (r12 > -1) {
+                            angleY = acosf(r12);
+                            angleZ0 = atan2f(r02, r22);
+                            angleZ1 = atan2f(r11, -r10);
+                        }
+                        else {
+                            angleY = acosf(-1);
+                            angleZ0 = -atan2f(r00, r01);
+                            angleZ1 = 0;
                         }
                     }
+                    else {
+                        angleY = 0;
+                        angleZ0 = atan2f(r00, r01);
+                        angleZ1 = 0;
+                    }
+
+                    data(i).MyRotate(Z, -angleZ1);
+                    if (i != data_list.size() - 1)
+                        data(i + 1).MyRotate(Z, angleZ1);
                 }
             }
 
-
-
-            Eigen::Matrix3d Viewer::ParentsInverseRot(int index) {
-                Eigen::Matrix3d rot = data(index).GetTout().rotation().matrix().inverse();
-                int i = index - 1;
-                while (i > 0) {
-                    rot = rot * data(i).GetTout().rotation().matrix().inverse();
-                    i--;
-                }
-                return rot;
-            }
-
-
-            Eigen::Matrix4d Viewer::ParentsTrans(int index) {
-                if (index <= 1)
-                    return Eigen::Transform<double, 3, Eigen::Affine>::Identity().matrix();
-                return ParentsTrans(index - 1) * data_list[index - 1].MakeTransScaled();
-            }
-
-
-
-            void Viewer::printTipPos() {
-                for (int i = 1; i <= links_number; i++) {
-                    Eigen::Vector4d pos4 = ParentsTrans(i) * data_list[i].MakeTransScaled() * Eigen::Vector4d(0, 0.8, 0, 1);
-                    Eigen::Vector3d pos3 = Eigen::Vector3d(pos4[0], pos4[1], pos4[2]);
-                    cout << "----- Tip " << i << " -----" << endl << pos3 << endl << "-----------------" << endl;
-                }
-            }
-
-            void Viewer::printRotation() {
-                if (selected_data_index == -1)
-                    cout << "Rotation: " << endl << GetTout().rotation().matrix() << endl;
-                else cout << "Rotation: " << endl << data_list[selected_data_index].GetTout().rotation().matrix() << endl;
-            }
-
-            void Viewer::printBallPos() {
-                Eigen::Vector4d pos4 = data_list[0].MakeTransScaled() * Eigen::Vector4d(0, 0, 0, 1);
-                Eigen::Vector3d pos3 = Eigen::Vector3d(pos4[0], pos4[1], pos4[2]);
-                cout << "-- Destination --" << endl << pos3 << endl << "-----------------" << endl;
-            }
 
 
             IGL_INLINE bool Viewer::load_mesh_from_file(
@@ -310,10 +358,6 @@ namespace igl
                     data().grid_texture();
                 }
 
-                //initilize mesh for decimation
-                //data().V_clone = data().V;
-                //data().F_clone = data().F;
-                //data().init_mesh();
 
                 //for (unsigned int i = 0; i<plugins.size(); ++i)
                 //  if (plugins[i]->post_load())
@@ -321,28 +365,20 @@ namespace igl
 
 
                 if (mesh_file_name_string != "C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/sphere.obj") {
-
                     data().MyTranslateInSystem(data().GetRotation(), Eigen::RowVector3d(0, 0, 1.6));
                     data().kd_tree.init(data().V, data().F);
                     data().drawAxis(data().kd_tree.m_box);
                     data().SetCenterOfRotation(Eigen::RowVector3d(0, 0, -0.8));
-                    std::cout << "HILYNN\n" << std::endl;
-                    int lastLinkidx = links_number;
+
+                    int lastLinkidx = link_num;
                     tip = CalcParentsTrans(lastLinkidx) *
                         data(lastLinkidx).MakeTransd() *
                         Eigen::Vector4d(data(lastLinkidx).V.colwise().mean()[0], data(lastLinkidx).V.colwise().maxCoeff()[1], data(lastLinkidx).V.colwise().mean()[2], 1);
-
-
-                    links_number++;
-                    if (links_number == 1)
-                        data_list[1].setParent(nullptr);
-                    if (links_number > 1) {
-                        Movable* parent = &data_list[links_number - 1];
-                        data_list[links_number].setParent(parent);
-                        //data_list[i].ParentTrans();
-                    }
-
+                    
+                    link_num++;
+                    SetNewShape(link_num);
                 }
+
 
                 return true;
             }
@@ -424,9 +460,8 @@ namespace igl
 
             IGL_INLINE void Viewer::open_dialog_load_mesh()
             {
+
                 this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/zcylinder.obj");
-
-
             }
 
             IGL_INLINE void Viewer::open_dialog_save_mesh()
@@ -510,6 +545,7 @@ namespace igl
                 return 0;
             }
 
+
             Eigen::Matrix4d Viewer::CalcParentsTrans(int indx)
             {
                 Eigen::Matrix4d prevTrans = Eigen::Matrix4d::Identity();
@@ -522,51 +558,6 @@ namespace igl
 
                 return prevTrans;
             }
-            IGL_INLINE void Viewer::IKSolver() {
-
-                Eigen::Vector4d spherePos = (data_list[0].MakeTransScaled() * Eigen::Vector4d(0, 0, 0, 1));
-                float cylinderLength = 1.6;
-                float sphereLength = 0.6;
-                int numberOfCylinder = (data_list.size() - 1);
-                int baseCylinder = 1;
-                float minDis = cylinderLength * numberOfCylinder + sphereLength;
-                // Top = the top point of the topest cylinder
-                for (int i = numberOfCylinder; i > 0; i--) {
-                    Eigen::Vector4d topICylinder = data_list[i].ParentTrans() * data_list[i].MakeTransScaled() * Eigen::Vector4d(0, 0, 0.8, 1);
-                    Eigen::Vector4d botICylinder = data_list[i].ParentTrans() * data_list[i].MakeTransScaled() * Eigen::Vector4d(0, 0, -0.8, 1);
-                    Eigen::Vector4d topTopCylinder = data_list[numberOfCylinder].ParentTrans() * data_list[4].MakeTransScaled() * Eigen::Vector4d(0, 0, 0.8, 1);
-                    Eigen::Vector4d botBaseCylinder = data_list[baseCylinder].ParentTrans() * data_list[baseCylinder].MakeTransScaled() * Eigen::Vector4d(0, 0, -0.8, 1);
-
-                    float disBaseSphere = (botBaseCylinder - spherePos).norm();
-                    float disIShpere = (topTopCylinder - spherePos).norm();
-                    std::cout << disIShpere << std::endl;
-
-                    if (disBaseSphere > minDis || disIShpere < 0.1)
-                        is_IKSolver = false;
-
-                    Eigen::Vector4d disTop_BotI = (topTopCylinder - botICylinder).normalized();
-                    Eigen::Vector4d disSphere_BotI = (spherePos - botICylinder).normalized();
-
-                    double cosAngle = disTop_BotI.dot(disSphere_BotI);
-                    if (cosAngle > 1) {
-                        cosAngle = 1;
-                    }
-                    if (cosAngle < -1) {
-                        cosAngle = -1;
-                    }
-                    double angle_I_sphere = static_cast<double>(acos(cosAngle));
-
-                    Eigen::Vector3d RE;
-                    Eigen::Vector3d RD;
-                    RE << disTop_BotI(0), disTop_BotI(1), disTop_BotI(2);
-                    RD << disSphere_BotI(0), disSphere_BotI(1), disSphere_BotI(2);
-                    Eigen::Vector3d rotationAxis = (RE.cross(RD)).normalized();
-                    data_list[i].MyRotate(rotationAxis, angle_I_sphere);
-                }
-
-
-            }
-
 
         } // end namespace
     } // end namespace

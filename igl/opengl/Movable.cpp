@@ -101,9 +101,13 @@ void Movable::SetCenterOfRotation(Eigen::Vector3d amt)
 
 
 }
-Eigen::Vector3d Movable::getCenterOfRotation()
+Eigen::Vector3d Movable::getCenterOfRotationTout()
 {
 	return -Tout.translation();
+}
+
+Eigen::Vector3d Movable::GetCenterOfRotation() {
+	return -Tin.translation();
 }
 
 void Movable::MyTranslateInSystem(Eigen::Matrix3d rot, Eigen::Vector3d amt)
