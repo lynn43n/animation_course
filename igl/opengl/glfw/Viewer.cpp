@@ -51,45 +51,166 @@
 static double highdpi = 1;
 static double scroll_x = 0;
 static double scroll_y = 0;
+using namespace std;
 
 
 namespace igl
 {
-namespace opengl
-{
-namespace glfw
-{
-    
-  typedef std::set<std::pair<double, int> > PriorityQueue;
+    namespace opengl
+    {
+        namespace glfw
+        {
 
-  void Viewer::Init(const std::string config)
-  {
-	  
+            typedef std::set<std::pair<double, int> > PriorityQueue;
 
-  }
+            void Viewer::Init(const std::string config)
+            {
 
-  IGL_INLINE Viewer::Viewer():
-    data_list(1),
-    selected_data_index(0),
-    next_data_id(1),
-	isPicked(false),
-	isActive(false)
-  {
-    data_list.front().id = 0;
 
-  
+            }
 
-    // Temporary variables initialization
-   // down = false;
-  //  hack_never_moved = true;
-    scroll_position = 0.0f;
 
-    // Per face
-    data().set_face_based(false);
+            void Viewer::toggleIK() {
+                if (IKon == true) {
+                    fixAxis();
+                }
+                IKon = !IKon;
+            }
 
-    
+            void Viewer::animateIK() {
+                Eigen::Vector4d root4 = data_list[1].MakeTransScaled() * Eigen::Vector4d(0, -0.8, 0, 1);
+                Eigen::Vector3d root = Eigen::Vector3d(root4[0], root4[1], root4[2]);
+
+                Eigen::Vector4d ball4 = data_list[0].MakeTransScaled() * Eigen::Vector4d(0, 0, 0, 1);
+                Eigen::Vector3d ball = Eigen::Vector3d(ball4[0], ball4[1], ball4[2]);
+
+                double dist = (root - ball).norm();
+
+                if (dist > 6.4) { //6.4 is arm length fully extended
+                    cout << "cannot reach" << endl;
+                    IKon = false;
+                    return;
+                }
+                Eigen::Vector4d E4;
+                Eigen::Vector3d E;
+                for (int i = 4; i > 0; i--) {
+                    E4 = ParentsTrans(4) * data_list[4].MakeTransScaled() * Eigen::Vector4d(0, 0.8, 0, 1);
+                    E = Eigen::Vector3d(E4[0], E4[1], E4[2]);
+                    dist = (E - ball).norm();
+
+                    Eigen::Vector4d R4 = ParentsTrans(i) * data_list[i].MakeTransScaled() * Eigen::Vector4d(0, -0.8, 0, 1);
+                    Eigen::Vector3d R = Eigen::Vector3d(R4[0], R4[1], R4[2]);
+
+                    Eigen::Vector3d RE = E - R;
+                    Eigen::Vector3d RD = ball - R;
+
+                    float dot = RD.normalized().dot(RE.normalized());
+                    float alphaRad = acosf(dot); //alpah in radians
+                    if (dist > 0.3)
+                        alphaRad = alphaRad / 20;
+                    if (dot >= 1.0)
+                        alphaRad = 0;
+
+                    Eigen::Vector3d cros = RE.cross(RD);
+                    cros.normalize();
+                    cros = ParentsInverseRot(i) * cros;
+                    data_list[i].MyRotate(cros, alphaRad, false);
+                    // ----- Debug Prints ----
+                    //float alpha =  alphaRad / M_PI * 180.0; //alpha in degrees
+                    //cout << "R: " << endl << R << endl << "E: " << endl << E << endl;
+                    //cout << "RE: " << endl << RE << endl << "RD: " << endl << RD << endl;
+                    //cout << "alpha: " << alphaRad << endl;
+                    //cout << "dot: " << dot << endl;
+                }
+                E4 = ParentsTrans(4) * data_list[4].MakeTransScaled() * Eigen::Vector4d(0, 0.8, 0, 1);
+                E = Eigen::Vector3d(E4[0], E4[1], E4[2]);
+                dist = (E - ball).norm();
+                if (dist < 0.1 || IKon == false) {
+                    IKon = false;
+                    fixAxis();
+                }
+                cout << "Distance: " << dist << endl;
+            }
+
+            void Viewer::fixAxis() {
+                float firstY = 0;
+                for (int i = 1; i <= 4; i++) {
+                    Eigen::Matrix3d RU = data_list[i].GetTout().rotation().matrix();
+                    if (RU(1, 1) < 1.0) {
+                        if (RU(1, 1) > -1.0) {
+                            float y = atan2f(RU(1, 0), -RU(1, 2));
+                            data_list[i].MyRotate(Eigen::Vector3d(0, 1, 0), -y, false);
+                            if (i != 4) {
+                                data_list[i + 1].MyRotate(Eigen::Vector3d(0, 1, 0), y, true);
+                            }
+                        }
+                    }
+                }
+            }
+
+        
+
+            Eigen::Matrix3d Viewer::ParentsInverseRot(int index) {
+                Eigen::Matrix3d rot = data(index).GetTout().rotation().matrix().inverse();
+                int i = index - 1;
+                while (i > 0) {
+                    rot = rot * data(i).GetTout().rotation().matrix().inverse();
+                    i--;
+                }
+                return rot;
+            }
+
+
+            Eigen::Matrix4d Viewer::ParentsTrans(int index) {
+                if (index <= 1)
+                    return Eigen::Transform<double, 3, Eigen::Affine>::Identity().matrix();
+                return ParentsTrans(index - 1) * data_list[index - 1].MakeTransScaled();
+            }
+
+
+            void Viewer::printTipPos() {
+                for (int i = 1; i <= 4; i++) {
+                    Eigen::Vector4d pos4 = ParentsTrans(i) * data_list[i].MakeTransScaled() * Eigen::Vector4d(0, 0.8, 0, 1);
+                    Eigen::Vector3d pos3 = Eigen::Vector3d(pos4[0], pos4[1], pos4[2]);
+                    cout << "----- Tip " << i << " -----" << endl << pos3 << endl << "-----------------" << endl;
+                }
+            }
+
+            void Viewer::printRotation() {
+                if (selected_data_index == -1)
+                    cout << "Rotation: " << endl << GetTout().rotation().matrix() << endl;
+                else cout << "Rotation: " << endl << data_list[selected_data_index].GetTout().rotation().matrix() << endl;
+            }
+
+            void Viewer::printBallPos() {
+                Eigen::Vector4d pos4 = data_list[0].MakeTransScaled() * Eigen::Vector4d(0, 0, 0, 1);
+                Eigen::Vector3d pos3 = Eigen::Vector3d(pos4[0], pos4[1], pos4[2]);
+                cout << "-- Destination --" << endl << pos3 << endl << "-----------------" << endl;
+            }
+
+
+            IGL_INLINE Viewer::Viewer() :
+                data_list(1),
+                selected_data_index(0),
+                next_data_id(1),
+                isPicked(false),
+                isActive(false)
+            {
+                data_list.front().id = 0;
+
+
+
+                // Temporary variables initialization
+               // down = false;
+              //  hack_never_moved = true;
+                scroll_position = 0.0f;
+
+                // Per face
+                data().set_face_based(false);
+
+
 #ifndef IGL_VIEWER_VIEWER_QUIET
-    const std::string usage(R"(igl::opengl::glfw::Viewer usage:
+                const std::string usage(R"(igl::opengl::glfw::Viewer usage:
   [drag]  Rotate scene
   A,a     Toggle animation (tight draw loop)
   F,f     Toggle face based
@@ -101,412 +222,324 @@ namespace glfw
   1,2     Toggle between models
   ;       Toggle vertex labels
   :       Toggle face labels)"
-);
-    std::cout<<usage<<std::endl;
+                );
+                std::cout << usage << std::endl;
 #endif
-  }
+            }
 
-  IGL_INLINE Viewer::~Viewer()
-  {
-  }
+            IGL_INLINE Viewer::~Viewer()
+            {
+            }
 
-  IGL_INLINE bool Viewer::load_mesh_from_file(
-      const std::string & mesh_file_name_string)
-  {
+            IGL_INLINE bool Viewer::load_mesh_from_file(
+                const std::string& mesh_file_name_string)
+            {
 
-    // Create new data slot and set to selected
-    if(!(data().F.rows() == 0  && data().V.rows() == 0))
-    {
-      append_mesh();
-    }
-    data().clear();
+                // Create new data slot and set to selected
+                if (!(data().F.rows() == 0 && data().V.rows() == 0))
+                {
+                    append_mesh();
+                }
+                data().clear();
 
-    size_t last_dot = mesh_file_name_string.rfind('.');
-    if (last_dot == std::string::npos)
-    {
-      std::cerr<<"Error: No file extension found in "<<
-        mesh_file_name_string<<std::endl;
-      return false;
-    }
+                size_t last_dot = mesh_file_name_string.rfind('.');
+                if (last_dot == std::string::npos)
+                {
+                    std::cerr << "Error: No file extension found in " <<
+                        mesh_file_name_string << std::endl;
+                    return false;
+                }
 
-    std::string extension = mesh_file_name_string.substr(last_dot+1);
+                std::string extension = mesh_file_name_string.substr(last_dot + 1);
 
-    if (extension == "off" || extension =="OFF")
-    {
-      Eigen::MatrixXd V;
-      Eigen::MatrixXi F;
-      if (!igl::readOFF(mesh_file_name_string, V, F))
-        return false;
-      data().set_mesh(V,F);
-    }
-    else if (extension == "obj" || extension =="OBJ")
-    {
-      Eigen::MatrixXd corner_normals;
-      Eigen::MatrixXi fNormIndices;
+                if (extension == "off" || extension == "OFF")
+                {
+                    Eigen::MatrixXd V;
+                    Eigen::MatrixXi F;
+                    if (!igl::readOFF(mesh_file_name_string, V, F))
+                        return false;
+                    data().set_mesh(V, F);
+                }
+                else if (extension == "obj" || extension == "OBJ")
+                {
+                    Eigen::MatrixXd corner_normals;
+                    Eigen::MatrixXi fNormIndices;
 
-      Eigen::MatrixXd UV_V;
-      Eigen::MatrixXi UV_F;
-      Eigen::MatrixXd V;
-      Eigen::MatrixXi F;
+                    Eigen::MatrixXd UV_V;
+                    Eigen::MatrixXi UV_F;
+                    Eigen::MatrixXd V;
+                    Eigen::MatrixXi F;
 
-      if (!(
-            igl::readOBJ(
-              mesh_file_name_string,
-              V, UV_V, corner_normals, F, UV_F, fNormIndices)))
-      {
-        return false;
-      }
+                    if (!(
+                        igl::readOBJ(
+                            mesh_file_name_string,
+                            V, UV_V, corner_normals, F, UV_F, fNormIndices)))
+                    {
+                        return false;
+                    }
 
-      data().set_mesh(V,F);
-      if (UV_V.rows() > 0)
-      {
-          data().set_uv(UV_V, UV_F);
-      }
+                    data().set_mesh(V, F);
+                    if (UV_V.rows() > 0)
+                    {
+                        data().set_uv(UV_V, UV_F);
+                    }
 
-    }
-    else
-    {
-      // unrecognized file type
-      printf("Error: %s is not a recognized file type.\n",extension.c_str());
-      return false;
-    }
+                }
+                else
+                {
+                    // unrecognized file type
+                    printf("Error: %s is not a recognized file type.\n", extension.c_str());
+                    return false;
+                }
 
-    data().compute_normals();
-    data().uniform_colors(Eigen::Vector3d(51.0/255.0,43.0/255.0,33.3/255.0),
-                   Eigen::Vector3d(255.0/255.0,228.0/255.0,58.0/255.0),
-                   Eigen::Vector3d(255.0/255.0,235.0/255.0,80.0/255.0));
+                data().compute_normals();
+                data().uniform_colors(Eigen::Vector3d(51.0 / 255.0, 43.0 / 255.0, 33.3 / 255.0),
+                    Eigen::Vector3d(255.0 / 255.0, 228.0 / 255.0, 58.0 / 255.0),
+                    Eigen::Vector3d(255.0 / 255.0, 235.0 / 255.0, 80.0 / 255.0));
 
-    // Alec: why?
-    if (data().V_uv.rows() == 0)
-    {
-      data().grid_texture();
-    }
-    
-    //initilize mesh for decimation
-    data().V_clone = data().V;
-    data().F_clone = data().F;
-    data().init_mesh();
+                // Alec: why?
+                if (data().V_uv.rows() == 0)
+                {
+                    data().grid_texture();
+                }
 
-    //for (unsigned int i = 0; i<plugins.size(); ++i)
-    //  if (plugins[i]->post_load())
-    //    return true;
+                //initilize mesh for decimation
+                data().V_clone = data().V;
+                data().F_clone = data().F;
+                data().init_mesh();
 
-    return true;
-  }
+                //for (unsigned int i = 0; i<plugins.size(); ++i)
+                //  if (plugins[i]->post_load())
+                //    return true;
 
-  IGL_INLINE bool Viewer::save_mesh_to_file(
-      const std::string & mesh_file_name_string)
-  {
-    // first try to load it with a plugin
-    //for (unsigned int i = 0; i<plugins.size(); ++i)
-    //  if (plugins[i]->save(mesh_file_name_string))
-    //    return true;
+                return true;
+            }
 
-    size_t last_dot = mesh_file_name_string.rfind('.');
-    if (last_dot == std::string::npos)
-    {
-      // No file type determined
-      std::cerr<<"Error: No file extension found in "<<
-        mesh_file_name_string<<std::endl;
-      return false;
-    }
-    std::string extension = mesh_file_name_string.substr(last_dot+1);
-    if (extension == "off" || extension =="OFF")
-    {
-      return igl::writeOFF(
-        mesh_file_name_string,data().V,data().F);
-    }
-    else if (extension == "obj" || extension =="OBJ")
-    {
-      Eigen::MatrixXd corner_normals;
-      Eigen::MatrixXi fNormIndices;
+            IGL_INLINE bool Viewer::save_mesh_to_file(
+                const std::string& mesh_file_name_string)
+            {
+                // first try to load it with a plugin
+                //for (unsigned int i = 0; i<plugins.size(); ++i)
+                //  if (plugins[i]->save(mesh_file_name_string))
+                //    return true;
 
-      Eigen::MatrixXd UV_V;
-      Eigen::MatrixXi UV_F;
+                size_t last_dot = mesh_file_name_string.rfind('.');
+                if (last_dot == std::string::npos)
+                {
+                    // No file type determined
+                    std::cerr << "Error: No file extension found in " <<
+                        mesh_file_name_string << std::endl;
+                    return false;
+                }
+                std::string extension = mesh_file_name_string.substr(last_dot + 1);
+                if (extension == "off" || extension == "OFF")
+                {
+                    return igl::writeOFF(
+                        mesh_file_name_string, data().V, data().F);
+                }
+                else if (extension == "obj" || extension == "OBJ")
+                {
+                    Eigen::MatrixXd corner_normals;
+                    Eigen::MatrixXi fNormIndices;
 
-      return igl::writeOBJ(mesh_file_name_string,
-          data().V,
-          data().F,
-          corner_normals, fNormIndices, UV_V, UV_F);
-    }
-    else
-    {
-      // unrecognized file type
-      printf("Error: %s is not a recognized file type.\n",extension.c_str());
-      return false;
-    }
-    return true;
-  }
- 
-  IGL_INLINE bool Viewer::load_scene()
-  {
-    std::string fname = igl::file_dialog_open();
-    if(fname.length() == 0)
-      return false;
-    return load_scene(fname);
-  }
+                    Eigen::MatrixXd UV_V;
+                    Eigen::MatrixXi UV_F;
 
-  IGL_INLINE bool Viewer::load_scene(std::string fname)
-  {
-   // igl::deserialize(core(),"Core",fname.c_str());
-    igl::deserialize(data(),"Data",fname.c_str());
-    return true;
-  }
+                    return igl::writeOBJ(mesh_file_name_string,
+                        data().V,
+                        data().F,
+                        corner_normals, fNormIndices, UV_V, UV_F);
+                }
+                else
+                {
+                    // unrecognized file type
+                    printf("Error: %s is not a recognized file type.\n", extension.c_str());
+                    return false;
+                }
+                return true;
+            }
 
-  IGL_INLINE bool Viewer::save_scene()
-  {
-    std::string fname = igl::file_dialog_save();
-    if (fname.length() == 0)
-      return false;
-    return save_scene(fname);
-  }
+            IGL_INLINE bool Viewer::load_scene()
+            {
+                std::string fname = igl::file_dialog_open();
+                if (fname.length() == 0)
+                    return false;
+                return load_scene(fname);
+            }
 
-  IGL_INLINE bool Viewer::save_scene(std::string fname)
-  {
-    //igl::serialize(core(),"Core",fname.c_str(),true);
-    igl::serialize(data(),"Data",fname.c_str());
+            IGL_INLINE bool Viewer::load_scene(std::string fname)
+            {
+                // igl::deserialize(core(),"Core",fname.c_str());
+                igl::deserialize(data(), "Data", fname.c_str());
+                return true;
+            }
 
-    return true;
-  }
+            IGL_INLINE bool Viewer::save_scene()
+            {
+                std::string fname = igl::file_dialog_save();
+                if (fname.length() == 0)
+                    return false;
+                return save_scene(fname);
+            }
 
-  IGL_INLINE void Viewer::open_dialog_load_mesh()
-  {
-    std::string fname = igl::file_dialog_open();
+            IGL_INLINE bool Viewer::save_scene(std::string fname)
+            {
+                //igl::serialize(core(),"Core",fname.c_str(),true);
+                igl::serialize(data(), "Data", fname.c_str());
 
-    if (fname.length() == 0)
-      return;
-    
-    this->load_mesh_from_file(fname.c_str());
-  }
+                return true;
+            }
 
-  IGL_INLINE void Viewer::open_dialog_save_mesh()
-  {
-    std::string fname = igl::file_dialog_save();
+            IGL_INLINE void Viewer::open_dialog_load_mesh()
+            {
+                std::string fname = igl::file_dialog_open();
 
-    if(fname.length() == 0)
-      return;
+                if (fname.length() == 0)
+                    return;
 
-    this->save_mesh_to_file(fname.c_str());
-  }
+                this->load_mesh_from_file(fname.c_str());
 
-  IGL_INLINE ViewerData& Viewer::data(int mesh_id /*= -1*/)
-  {
-    assert(!data_list.empty() && "data_list should never be empty");
-    int index;
-    if (mesh_id == -1)
-      index = selected_data_index;
-    else
-      index = mesh_index(mesh_id);
+            }
 
-    assert((index >= 0 && index < data_list.size()) &&
-      "selected_data_index or mesh_id should be in bounds");
-    return data_list[index];
-  }
+            IGL_INLINE void Viewer::open_dialog_save_mesh()
+            {
+                std::string fname = igl::file_dialog_save();
 
-  IGL_INLINE const ViewerData& Viewer::data(int mesh_id /*= -1*/) const
-  {
-    assert(!data_list.empty() && "data_list should never be empty");
-    int index;
-    if (mesh_id == -1)
-      index = selected_data_index;
-    else
-      index = mesh_index(mesh_id);
+                if (fname.length() == 0)
+                    return;
 
-    assert((index >= 0 && index < data_list.size()) &&
-      "selected_data_index or mesh_id should be in bounds");
-    return data_list[index];
-  }
+                this->save_mesh_to_file(fname.c_str());
+            }
 
-  IGL_INLINE int Viewer::append_mesh(bool visible /*= true*/)
-  {
-    assert(data_list.size() >= 1);
+            IGL_INLINE ViewerData& Viewer::data(int mesh_id /*= -1*/)
+            {
+                assert(!data_list.empty() && "data_list should never be empty");
+                int index;
+                if (mesh_id == -1)
+                    index = selected_data_index;
+                else
+                    index = mesh_index(mesh_id);
 
-    data_list.emplace_back();
-    selected_data_index = data_list.size()-1;
-    data_list.back().id = next_data_id++;
-    //if (visible)
-    //    for (int i = 0; i < core_list.size(); i++)
-    //        data_list.back().set_visible(true, core_list[i].id);
-    //else
-    //    data_list.back().is_visible = 0;
-    return data_list.back().id;
-  }
+                assert((index >= 0 && index < data_list.size()) &&
+                    "selected_data_index or mesh_id should be in bounds");
+                return data_list[index];
+            }
 
-  IGL_INLINE bool Viewer::erase_mesh(const size_t index)
-  {
-    assert((index >= 0 && index < data_list.size()) && "index should be in bounds");
-    assert(data_list.size() >= 1);
-    if(data_list.size() == 1)
-    {
-      // Cannot remove last mesh
-      return false;
-    }
-    data_list[index].meshgl.free();
-    data_list.erase(data_list.begin() + index);
-    if(selected_data_index >= index && selected_data_index > 0)
-    {
-      selected_data_index--;
-    }
+            IGL_INLINE const ViewerData& Viewer::data(int mesh_id /*= -1*/) const
+            {
+                assert(!data_list.empty() && "data_list should never be empty");
+                int index;
+                if (mesh_id == -1)
+                    index = selected_data_index;
+                else
+                    index = mesh_index(mesh_id);
 
-    return true;
-  }
+                assert((index >= 0 && index < data_list.size()) &&
+                    "selected_data_index or mesh_id should be in bounds");
+                return data_list[index];
+            }
 
-  IGL_INLINE size_t Viewer::mesh_index(const int id) const {
-    for (size_t i = 0; i < data_list.size(); ++i)
-    {
-      if (data_list[i].id == id)
-        return i;
-    }
-    return 0;
-  }
+            IGL_INLINE int Viewer::append_mesh(bool visible /*= true*/)
+            {
+                assert(data_list.size() >= 1);
 
-  Eigen::Matrix4d Viewer::CalcParentsTrans(int indx) 
-  {
-	  Eigen::Matrix4d prevTrans = Eigen::Matrix4d::Identity();
+                data_list.emplace_back();
+                selected_data_index = data_list.size() - 1;
+                data_list.back().id = next_data_id++;
+                //if (visible)
+                //    for (int i = 0; i < core_list.size(); i++)
+                //        data_list.back().set_visible(true, core_list[i].id);
+                //else
+                //    data_list.back().is_visible = 0;
+                return data_list.back().id;
+            }
 
-	  for (int i = indx; parents[i] >= 0; i = parents[i])
-	  {
-		  //std::cout << "parent matrix:\n" << scn->data_list[scn->parents[i]].MakeTrans() << std::endl;
-		  prevTrans = data_list[parents[i]].MakeTransd() * prevTrans;
-	  }
+            IGL_INLINE bool Viewer::erase_mesh(const size_t index)
+            {
+                assert((index >= 0 && index < data_list.size()) && "index should be in bounds");
+                assert(data_list.size() >= 1);
+                if (data_list.size() == 1)
+                {
+                    // Cannot remove last mesh
+                    return false;
+                }
+                data_list[index].meshgl.free();
+                data_list.erase(data_list.begin() + index);
+                if (selected_data_index >= index && selected_data_index > 0)
+                {
+                    selected_data_index--;
+                }
 
-	  return prevTrans;
-  }
+                return true;
+            }
 
-  //IGL_INLINE bool Viewer::checkCollision(igl::AABB<Eigen::MatrixXd, 3>* Atree, igl::AABB<Eigen::MatrixXd, 3>* Btree) {
-  //    Eigen::AlignedBox<double, 3> Abox = Atree->m_box;
-  //    Eigen::AlignedBox<double, 3> Bbox = Btree->m_box;
+            IGL_INLINE size_t Viewer::mesh_index(const int id) const {
+                for (size_t i = 0; i < data_list.size(); ++i)
+                {
+                    if (data_list[i].id == id)
+                        return i;
+                }
+                return 0;
+            }
 
-  //    Eigen::Vector4f DefaultCenterA = Eigen::Vector4f(Abox.center()(0), Abox.center()(1), Abox.center()(2), 1);
-  //    Eigen::Vector4f DefaultCenterB = Eigen::Vector4f(Bbox.center()(0), Bbox.center()(1), Bbox.center()(2), 1);
+            Eigen::Matrix4d Viewer::CalcParentsTrans(int indx)
+            {
+                Eigen::Matrix4d prevTrans = Eigen::Matrix4d::Identity();
 
-  //    Eigen::Matrix4f transA = data_list[SNAKE_HEAD].ParentTrans() * data_list[SNAKE_HEAD].MakeTrans();
-  //    Eigen::Matrix4f transB = data_list[animation_id].MakeTrans();
-  //    Eigen::Matrix3f rotationA = transA.block<3, 3>(0, 0);
-  //    Eigen::Matrix3f rotationB = transB.block<3, 3>(0, 0);
+                for (int i = indx; parents[i] >= 0; i = parents[i])
+                {
+                    //std::cout << "parent matrix:\n" << scn->data_list[scn->parents[i]].MakeTrans() << std::endl;
+                    prevTrans = data_list[parents[i]].MakeTransd() * prevTrans;
+                }
 
-  //    Eigen::Vector4f centerA = data_list[SNAKE_HEAD].ParentTrans() * data_list[SNAKE_HEAD].MakeTrans() * DefaultCenterA;
-  //    Eigen::Vector4f centerB = data_list[animation_id].MakeTrans() * DefaultCenterB;
-  //    Eigen::Vector3f D = Eigen::Vector3f((centerB(0) - centerA(0)), (centerB(1) - centerA(1)), (centerB(2) - centerA(2))).cwiseAbs();
-  //    Eigen::Vector3f A0 = (rotationA * Eigen::Vector3f(1, 0, 0));//.normalized();
-  //    Eigen::Vector3f A1 = (rotationA * Eigen::Vector3f(0, 1, 0));//.normalized();
-  //    Eigen::Vector3f A2 = (rotationA * Eigen::Vector3f(0, 0, 1));//.normalized();	  
+                return prevTrans;
+            }
+            IGL_INLINE void Viewer::IKSolver() {
 
-  //    Eigen::Vector3f B0 = (rotationB * Eigen::Vector3f(1, 0, 0));//.normalized();
-  //    Eigen::Vector3f B1 = (rotationB * Eigen::Vector3f(0, 1, 0));//.normalized();
-  //    Eigen::Vector3f B2 = (rotationB * Eigen::Vector3f(0, 0, 1));//.normalized();
-  //    Eigen::Vector3f A[3] = { A0, A1, A2 };
-  //    Eigen::Vector3f B[3] = { B0, B1, B2 };
-  //    Eigen::Vector3d a_s = Abox.sizes() / 2;
-  //    Eigen::Vector3d b_s = Bbox.sizes() / 2;
-  //    Eigen::Matrix3f c;
-  //    Eigen::Matrix3f c_n_abs;
-  //    for (size_t i = 0; i <= 2; i++)
-  //    {
-  //        for (size_t j = 0; j <= 2; j++)
-  //        {
-  //            c_n_abs(i, j) = A[i].dot(B[j]);
-  //            c(i, j) = std::abs(A[i].dot(B[j]));
-  //        }
-  //    }
-  //    bool collided = true;
-  //    float R0 = 0;
-  //    float R1 = 0;
-  //    float R = 0;
-  //    //------------------------ CHECK 1-6
-  //    for (size_t i = 0; i <= 2; i++)
-  //    {
-  //        R0 = a_s(i);
-  //        R1 = 0;
-  //        for (size_t j = 0; j <= 2; j++)
-  //        {
-  //            R1 += b_s(i) * c(i, j);
-  //        }
-  //        R = std::abs(A[i].dot(D));
-  //        if (R > R0 + R1) {
-  //            collided = false;
-  //        }
-  //    }
-  //    for (size_t i = 0; i <= 2; i++)
-  //    {
-  //        R0 = b_s(i);
-  //        R1 = 0;
-  //        for (size_t j = 0; j <= 2; j++)
-  //        {
-  //            R1 += a_s(i) * c(i, j);
-  //        }
-  //        R = std::abs(B[i].dot(D));
-  //        if (R > R0 + R1) {
-  //            collided = false;
-  //        }
-  //    }
+                Eigen::Vector4d spherePos = (data_list[0].MakeTransScaled() * Eigen::Vector4d(0, 0, 0, 1));
+                float cylinderLength = 1.6;
+                float sphereLength = 0.6;
+                int numberOfCylinder = (data_list.size() - 1);
+                int baseCylinder = 1;
+                float minDis = cylinderLength * numberOfCylinder + sphereLength;
+                // Top = the top point of the topest cylinder
+                for (int i = numberOfCylinder; i > 0; i--) {
+                    Eigen::Vector4d topICylinder = data_list[i].ParentTrans() * data_list[i].MakeTransScaled() * Eigen::Vector4d(0, 0, 0.8, 1);
+                    Eigen::Vector4d botICylinder = data_list[i].ParentTrans() * data_list[i].MakeTransScaled() * Eigen::Vector4d(0, 0, -0.8, 1);
+                    Eigen::Vector4d topTopCylinder = data_list[numberOfCylinder].ParentTrans() * data_list[4].MakeTransScaled() * Eigen::Vector4d(0, 0, 0.8, 1);
+                    Eigen::Vector4d botBaseCylinder = data_list[baseCylinder].ParentTrans() * data_list[baseCylinder].MakeTransScaled() * Eigen::Vector4d(0, 0, -0.8, 1);
+
+                    float disBaseSphere = (botBaseCylinder - spherePos).norm();
+                    float disIShpere = (topTopCylinder - spherePos).norm();
+                    std::cout << disIShpere << std::endl;
+
+                    if (disBaseSphere > minDis || disIShpere < 0.1)
+                        is_IKSolver = false;
+
+                    Eigen::Vector4d disTop_BotI = (topTopCylinder - botICylinder).normalized();
+                    Eigen::Vector4d disSphere_BotI = (spherePos - botICylinder).normalized();
+
+                    double cosAngle = disTop_BotI.dot(disSphere_BotI);
+                    if (cosAngle > 1) {
+                        cosAngle = 1;
+                    }
+                    if (cosAngle < -1) {
+                        cosAngle = -1;
+                    }
+                    double angle_I_sphere = static_cast<double>(acos(cosAngle));
+
+                    Eigen::Vector3d RE;
+                    Eigen::Vector3d RD;
+                    RE << disTop_BotI(0), disTop_BotI(1), disTop_BotI(2);
+                    RD << disSphere_BotI(0), disSphere_BotI(1), disSphere_BotI(2);
+                    Eigen::Vector3d rotationAxis = (RE.cross(RD)).normalized();
+                    data_list[i].MyRotate(rotationAxis, angle_I_sphere);
+                }
 
 
-  //    //---------------------------Checks 7-9
+            }
 
-  //    for (size_t i = 0; i <= 2; i++)
-  //    {
-  //        R0 = a_s(1) * c(2, i) + a_s(2) * c(1, i);
-  //        //R1 = b_s(1) * c(2, i) + a_s(2) * c(1, i);
-  //        switch (i) {
-  //        case 0: R1 = b_s(1) * c(0, 2) + b_s(2) * c(0, 1); break;
-  //        case 1: R1 = b_s(0) * c(0, 2) + b_s(2) * c(0, 0); break;
-  //        case 2: R1 = b_s(0) * c(0, 1) + b_s(1) * c(0, 0); break;
-  //        }
-  //        float R = std::abs(c_n_abs(1, i) * A[2].dot(D) - c_n_abs(2, i) * A[1].dot(D));
-  //        if (R > R0 + R1) {
-  //            collided = false;
-  //        }
-  //    }
-
-  //    //--------------------------Checks 10-12
-  //    for (size_t i = 0; i <= 2; i++)
-  //    {
-  //        R0 = a_s(0) * c(2, i) + a_s(2) * c(0, i);
-  //        //R1 = b_s(1) * c(2, i) + a_s(2) * c(1, i);
-  //        switch (i) {
-  //        case 0: R1 = b_s(1) * c(1, 2) + b_s(2) * c(1, 1); break;
-  //        case 1: R1 = b_s(0) * c(1, 2) + b_s(2) * c(1, 0); break;
-  //        case 2: R1 = b_s(0) * c(1, 1) + b_s(1) * c(1, 0); break;
-  //        }
-  //        float R = std::abs(c_n_abs(2, i) * A[0].dot(D) - c_n_abs(0, i) * A[2].dot(D));
-  //        if (R > R0 + R1) {
-  //            collided = false;
-  //        }
-  //    }
-  //    //------------------------Checks 13-15
-  //    for (size_t i = 0; i <= 2; i++)
-  //    {
-  //        R0 = a_s(0) * c(1, i) + a_s(1) * c(0, i);
-  //        //R1 = b_s(1) * c(2, i) + a_s(2) * c(1, i);
-  //        switch (i) {
-  //        case 0: R1 = b_s(1) * c(2, 2) + b_s(2) * c(2, 1); break;
-  //        case 1: R1 = b_s(0) * c(2, 2) + b_s(2) * c(2, 0); break;
-  //        case 2: R1 = b_s(0) * c(2, 1) + b_s(1) * c(2, 0); break;
-  //        }
-  //        float R = std::abs(c_n_abs(0, i) * A[1].dot(D) - c_n_abs(1, i) * A[0].dot(D));
-  //        if (R > R0 + R1) {
-  //            collided = false;
-  //        }
-  //    }
-
-  //    if (collided) {
-  //        if (Atree->is_leaf() && Btree->is_leaf()) {
-  //            return true;
-  //        }
-  //        else if (Btree->is_leaf()) {
-  //            return (checkCollision(Atree->m_left, Btree) || (checkCollision(Atree->m_right, Btree)));
-  //        }
-  //        else if (Atree->is_leaf()) {
-  //            return (checkCollision(Atree, Btree->m_left) || (checkCollision(Atree, Btree->m_right)));
-  //        }
-  //        else {
-  //            return (checkCollision(Atree->m_left, Btree->m_left) || checkCollision(Atree->m_left, Btree->m_right) || checkCollision(Atree->m_right, Btree->m_left) || checkCollision(Atree->m_right, Btree->m_right));
-  //        }
-  //    }
-  //    return false;
-  //}
-
-} // end namespace
-} // end namespace
+          
+        } // end namespace
+    } // end namespace
 }

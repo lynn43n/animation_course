@@ -149,7 +149,6 @@ IGL_INLINE void igl::opengl::ViewerData::deriving_error_quadric() {
 }
 
 
-
 IGL_INLINE void igl::opengl::ViewerData::Simplification(int num_of_faces) {
 
     //f. Prints the number of the collapse edge, its cost and the position of the new vertex ollowing

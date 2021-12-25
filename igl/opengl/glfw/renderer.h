@@ -17,8 +17,9 @@ public:
 	IGL_INLINE void move_object();
 	~Renderer();
 	IGL_INLINE void draw(GLFWwindow* window);
+	IGL_INLINE void IKSolverAnimation();
 	void changeDirection(int dir);
-	
+
 	IGL_INLINE bool is_collistion();
 
 	bool checkCollisionRec(igl::AABB<Eigen::MatrixXd, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2);
@@ -93,7 +94,9 @@ public:
 	// IGL_INLINE void select_hovered_core();
 
 	// Callbacks
-	double Picking(double x, double y);
+	bool Picking(double x, double y);
+	//double Picking(double x, double y);
+
 	inline void Animate() { scn->Animate(); };
 	IGL_INLINE bool key_pressed(unsigned int unicode_key, int modifier);
 	IGL_INLINE void resize(GLFWwindow* window, int w, int h); // explicitly set window size
@@ -104,6 +107,7 @@ public:
 	void SetScene(igl::opengl::glfw::Viewer* scn);
 	void checkCollision();
 	void UpdatePosition(double xpos, double ypos);
+	void MouseProcessing1(int button);
 	void MouseProcessing(int button);
 	inline igl::opengl::glfw::Viewer* GetScene() {
 		return scn;
@@ -116,6 +120,8 @@ public:
 	}
 
 	void updateDirection(int dir);
+
+	void rotateWithKeys(int key);
 
 	void TranslateCamera(Eigen::Vector3f amt);
 	void RotateCamera(float amtX, float amtY);

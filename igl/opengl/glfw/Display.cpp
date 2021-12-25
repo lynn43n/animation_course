@@ -123,13 +123,9 @@ bool Display::launch_rendering(bool loop)
 	{
 
 		double tic = igl::get_seconds();
-	//	if (renderer->isMovable) {
-		//	renderer->is_collistion();
-			//renderer->GetScene()->data_list[0].MyTranslateInSystem(renderer->GetScene()->data_list[0].GetRotation(), renderer->moveDir);
-			//renderer->GetScene()->data_list[0].MyTranslate(renderer->moveDir,true);
-			//renderer->checkCollision();
-		//	renderer->is_collistion();
-	//	}
+
+		if (renderer->GetScene()->IKon)
+			renderer->GetScene()->animateIK();
 		renderer->Animate();
 		renderer->draw(window);
 		glfwSwapBuffers(window);
