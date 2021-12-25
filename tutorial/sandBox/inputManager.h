@@ -192,6 +192,12 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 		case ' ':
 			scn->ikAnimation = !scn->ikAnimation;
 			break;
+		case 'L':
+		case 'l':
+		{
+			scn->fabricAnimation = !scn->fabricAnimation;
+			break;
+		}
 		default:
 			Eigen::Vector3f shift;
 			float scale;

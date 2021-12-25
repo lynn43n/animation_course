@@ -218,12 +218,12 @@ namespace igl
 
                         //the angle between re and the parent vector
                         double parent_angle = acosf(parent_dot);
-                        double deg2rad = 0.017453292;
+                        const double halfC = M_PI / 180;
 
                         //we want the angle to not be less than 30 degrees
                         double fix = 0;
-                        if (parent_angle < 30 * deg2rad) {
-                            fix = (30 * deg2rad) - parent_angle;
+                        if (parent_angle < 30 * halfC) {
+                            fix = (30 * halfC) - parent_angle;
                         }
                         data(i).MyRotate(rotation_axis, -angle);
                         angle -= fix;
