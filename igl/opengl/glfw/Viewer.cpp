@@ -167,42 +167,44 @@ namespace igl
             }
 
 
+
             IGL_INLINE void Viewer::fabrik_solver() {
-               //todo  http://devguis.com/chapter-13-implementing-inverse-kinematics-hands-on-c-game-animation-programming.html
 
-                Eigen::Vector3d start_position = data(1).MakeTransd().block(0, 1, 3, 3).col(2);
-                Eigen::Vector3d goal = data(0).MakeTransd().block(0, 1, 3, 3).col(2);
+                //todo  http://devguis.com/chapter-13-implementing-inverse-kinematics-hands-on-c-game-animation-programming.html
+
+                Eigen::Vector4d start_position = data_list[1].MakeTransd() * Eigen::Vector4d(0, 0, -link_length / 2, 1);
+                Eigen::Vector4d goal = data_list[0].MakeTransd() * Eigen::Vector4d(0, 0, 0, 1);
                 int last_index = data_list.size() - 1;
-                double link_size = 1.6;                
-                double size = link_num;
+                //data_list[last_index].MakeTransd()* Eigen::Vector4d(0, 0, -link_length / 2, 1) = goal;
                 double mThreashold = 0.1;
-
-                //check first if we are unable to reach the ball
-                if ((goal - start_position).norm() > link_size * size) {
-                    fabricAnimation = false;
-                    std::cout << "cannot reach" << std::endl;
-                    return;
-                }
                 std::vector<ViewerData> mIKChain;
-
-
+                Eigen::Vector4d curr, next, prev, direction, offset;
                  
                 // Iterate backwards
-                if (size > 0) {
+                if (link_num > 0) {
                     //mWorldChain[size - 1] = goal;
 
                 }
-                for (int i = size - 2; i >= 0; i--) {
-
+                for (int i = link_num - 2; i >= 0; i--) {
+                    curr = data_list[i].MakeTransd() * Eigen::Vector4d(0, 0, -link_length / 2, 1);
+                    next = data_list[i+1].MakeTransd() * Eigen::Vector4d(0, 0, -link_length / 2, 1);
+                    direction = (curr - next);
+                    offset = direction * link_length;
+                    //data_list[i] = next + offset;
                 }
 
                 // Iterate forwards
-                if (size > 0) {
+                if (link_num > 0) {
 
                     //mWorldChain[0] = base;
                 }
-                for (int i = 1; i < size; i++) {
+                for (int i = 1; i < link_num; i++) {
+                    curr = data_list[i].MakeTransd() * Eigen::Vector4d(0, 0, -link_length / 2, 1);
+                    prev = data_list[i - 1].MakeTransd() * Eigen::Vector4d(0, 0, -link_length / 2, 1);
+                    direction = curr - prev;
+                    offset = direction * link_length;
 
+                    //data_list[i] = prev + offset;
                 }
 
 
@@ -516,14 +518,17 @@ namespace igl
                     E, R, RE, RD;
                 Eigen::Vector3d cross;
                 double dist = 0.0;
-
+                // Loop through all joints in the chain in reverse, starting with the joint before the end effecor
                 for (int i = link_num; i > 0; --i) {
+                    // Find a vector from current joint to end effector and Find a vector from the current joint to the goal
                     E = CalcParentsTrans(link_num) * data_list[link_num].MakeTransd() * Eigen::Vector4d(0, 0, link_length / 2, 1);
                     dist = (E - ball).norm();
                     R = CalcParentsTrans(i) * data_list[i].MakeTransd() * Eigen::Vector4d(0, 0, -link_length / 2, 1);
                     RE = E - R;
                     RD = ball - R;
 
+                    // Rotate the joint so the joint to effector vector
+                    // matches the orientation of the joint to goal vector
                     double dot_product = RD.normalized().dot(RE.normalized());
                     double alpha = acos(dot_product > 1 ? 1 : dot_product < -1 ? -1 : dot_product);
                     cross = Eigen::Vector3d(RE[0], RE[1], RE[2]).cross(Eigen::Vector3d(RD[0], RD[1], RD[2])).normalized();
