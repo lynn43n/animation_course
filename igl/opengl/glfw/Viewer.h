@@ -133,6 +133,9 @@ namespace igl
                 // Retrieve mesh index from its unique identifier
                 // Returns 0 if not found
                 IGL_INLINE size_t mesh_index(const int id) const;
+                IGL_INLINE void Viewer::togleCCD();
+                void animateCCD();
+                Eigen::Matrix3d CalcParentsInverseRotation(int index);
 
                 Eigen::Matrix4d CalcParentsTrans(int indx);
 
@@ -157,6 +160,8 @@ namespace igl
                 Eigen::Vector3d destination;
 
                 int link_num;
+                double link_length;
+
                 bool ikAnimation;
                 bool fabricAnimation;
 

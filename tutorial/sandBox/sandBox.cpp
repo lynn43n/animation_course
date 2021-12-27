@@ -39,7 +39,7 @@ void SandBox::Animate()
 	if (isActive)
 	{
 
-
+		animateCCD();
 
 	}
 }

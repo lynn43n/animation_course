@@ -72,7 +72,8 @@ namespace igl
                 link_num(0),
                 destination(Eigen::Vector3d(5, 0, 0)),
                 ikAnimation(false),
-                fabricAnimation(false)
+                fabricAnimation(false),
+                link_length(1.6)
             {
                 data_list.front().id = 0;
 
@@ -165,73 +166,6 @@ namespace igl
                 return parentsInverse;
             }
 
-            IGL_INLINE void Viewer::ik_solver() {
-                int last_index = data_list.size() - 1;
-                double link_size = 1.6;
-                double num_of_links = link_num;
-
-                Eigen::Vector3d ball = data(0).MakeTransd().block(0, 1, 3, 3).col(2);
-                Eigen::Vector3d arm_base = data(1).MakeTransd().block(0, 1, 3, 3).col(2);
-                //check first if we are unable to reach the ball
-                if ((ball - arm_base).norm() > link_size * num_of_links) {
-                    ikAnimation = false;
-                    std::cout << "cannot reach" << std::endl;
-                    return;
-                }
-
-                int i = last_index;
-                while (i != -1 || i > last_index)
-                {
-                    Eigen::Vector4d rCenter(data(i).GetCenterOfRotation()[0], data(i).GetCenterOfRotation()[1], data(i).GetCenterOfRotation()[2], 1);
-                    Eigen::Vector4d r4 = MakeParentTrans(i) * data(i).MakeTransd() * rCenter;
-
-                    Eigen::Vector4d eCenter(data(last_index).GetCenterOfRotation()[0], data(last_index).GetCenterOfRotation()[1] + 1.6, data(last_index).GetCenterOfRotation()[2], 1);
-                    Eigen::Vector4d e4 = MakeParentTrans(last_index) * data(last_index).MakeTransd() * eCenter;
-
-                    Eigen::Vector3d rd = ball - r4.head<3>();
-                    Eigen::Vector3d re = e4.head<3>() - r4.head<3>();
-
-                    double distance = (ball - e4.head<3>()).norm();
-                    //we have reached the ball
-                    if (distance < 0.1) {
-                        std::cout << "distance: " << distance << std::endl;
-                        ikAnimation = false;
-                        fin_rotate();
-                        return;
-                    }
-
-                    Eigen::Vector3d rotation_axis = GetParentsRotationInverse(i) * re.cross(rd).normalized();
-                    double dot = legalRange(rd.normalized().dot(re.normalized()));
-                    double angle = distance < 1 ? acosf(dot) : acosf(dot) / 10;
-
-                    int parent_i = parents[i];
-                    if (parent_i != -1) {
-                        //update the vector re
-                        data(i).MyRotate(rotation_axis, angle);
-                        eCenter = Eigen::Vector4d(data(last_index).GetCenterOfRotation()[0], data(last_index).GetCenterOfRotation()[1] + 1.6, data(last_index).GetCenterOfRotation()[2], 1);
-                        re = (MakeParentTrans(last_index) * data(last_index).MakeTransd() * eCenter).head<3>() - r4.head<3>();
-
-                        //get parents vector
-                        Eigen::Vector4d parent_rCenter(data(parent_i).GetCenterOfRotation()[0], data(parent_i).GetCenterOfRotation()[1], data(parent_i).GetCenterOfRotation()[2], 1);
-                        Eigen::Vector3d parent_vec = (MakeParentTrans(parent_i) * data(parent_i).MakeTransd() * parent_rCenter).head<3>() - r4.head<3>();
-                        double parent_dot = legalRange(parent_vec.normalized().dot(re.normalized()));
-
-                        //the angle between re and the parent vector
-                        double parent_angle = acosf(parent_dot);
-                        const double halfC = M_PI / 180;
-
-                        //we want the angle to not be less than 30 degrees
-                        double fix = 0;
-                        if (parent_angle < 30 * halfC) {
-                            fix = (30 * halfC) - parent_angle;
-                        }
-                        data(i).MyRotate(rotation_axis, -angle);
-                        angle -= fix;
-                    }
-                    data(i).MyRotate(rotation_axis, angle);
-                    i = parents[i];
-                }
-            }
 
             IGL_INLINE void Viewer::fabrik_solver() {
                //todo  http://devguis.com/chapter-13-implementing-inverse-kinematics-hands-on-c-game-animation-programming.html
@@ -272,53 +206,6 @@ namespace igl
                 }
 
 
-            }
-
-            IGL_INLINE void Viewer::fin_rotate()
-            {
-                Eigen::Vector3d Z(0, 0, 1);
-                Eigen::Matrix3d prev_z = Eigen::Matrix3d::Identity();
-                Eigen::Matrix3d new_z = Eigen::Matrix3d::Identity();
-                for (int i = 1; i <= data_list.size() - 1; i++) {
-
-                    double angleZ0;
-                    double angleY;
-                    double angleZ1;
-
-                    Eigen::Matrix3d R = data(i).GetRotation();
-                    double r00 = R.row(0)[0];  // ux
-                    double r01 = R.row(0)[1];  // uy
-                    double r02 = R.row(0)[2];  // uz
-                    double r10 = R.row(1)[0];  // vx
-                    double r11 = R.row(1)[1];  // vy
-                    double r12 = R.row(1)[2];  // vz
-                    double r20 = R.row(2)[0];  // wx
-                    double r21 = R.row(2)[1];  // wy
-                    double r22 = R.row(2)[2];  // wz
-
-              
-                    if (r12 < 1) {
-                        if (r12 > -1) {
-                            angleY = acosf(r12);
-                            angleZ0 = atan2f(r02, r22);
-                            angleZ1 = atan2f(r11, -r10);
-                        }
-                        else {
-                            angleY = acosf(-1);
-                            angleZ0 = -atan2f(r00, r01);
-                            angleZ1 = 0;
-                        }
-                    }
-                    else {
-                        angleY = 0;
-                        angleZ0 = atan2f(r00, r01);
-                        angleZ1 = 0;
-                    }
-
-                    data(i).MyRotate(Z, -angleZ1);
-                    if (i != data_list.size() - 1)
-                        data(i + 1).MyRotate(Z, angleZ1);
-                }
             }
 
 
@@ -583,17 +470,69 @@ namespace igl
             }
 
 
+            IGL_INLINE Eigen::Matrix3d Viewer::CalcParentsInverseRotation(int index) {
+                Eigen::Matrix3d rot = data(index).GetRotation().inverse();
+
+                for (int i = index - 1; i > 0; --i)
+                    rot *= data(i).GetRotation().inverse();
+
+                return rot;
+            }
+
+
             Eigen::Matrix4d Viewer::CalcParentsTrans(int indx)
             {
                 Eigen::Matrix4d prevTrans = Eigen::Matrix4d::Identity();
-
                 for (int i = indx; parents[i] >= 0; i = parents[i])
                 {
-                    //std::cout << "parent matrix:\n" << scn->data_list[scn->parents[i]].MakeTrans() << std::endl;
                     prevTrans = data_list[parents[i]].MakeTransd() * prevTrans;
                 }
-
                 return prevTrans;
+            }
+
+            IGL_INLINE void Viewer::togleCCD() {
+                if (data_list.size() > 1) {
+                    Eigen::Vector4d root = data_list[1].MakeTransd() * Eigen::Vector4d(0, 0, -link_length / 2, 1);
+                    Eigen::Vector4d ball = data_list[0].MakeTransd() * Eigen::Vector4d(0, 0, 0, 1);
+                    double dist = (root - ball).norm();
+                    
+                    //first check if we are able to reach 
+                    if (link_num * link_length < dist) {
+                        std::cout << "cannot reach" << std::endl;
+                        isActive = false;
+                    }
+                    else {
+                        SetAnimation();
+                    }
+                }
+                else {
+                    std::cout << "cannot reach" << std::endl;
+                    isActive = false;
+                }
+            }
+
+            IGL_INLINE void Viewer::animateCCD() {
+                Eigen::Vector4d ball = data_list[0].MakeTransd() * Eigen::Vector4d(0, 0, 0, 1),
+                    E, R, RE, RD;
+                Eigen::Vector3d cross;
+                double dist = 0.0;
+
+                for (int i = link_num; i > 0; --i) {
+                    E = CalcParentsTrans(link_num) * data_list[link_num].MakeTransd() * Eigen::Vector4d(0, 0, link_length / 2, 1);
+                    dist = (E - ball).norm();
+                    R = CalcParentsTrans(i) * data_list[i].MakeTransd() * Eigen::Vector4d(0, 0, -link_length / 2, 1);
+                    RE = E - R;
+                    RD = ball - R;
+
+                    double dot_product = RD.normalized().dot(RE.normalized());
+                    double alpha = acos(dot_product > 1 ? 1 : dot_product < -1 ? -1 : dot_product);
+                    cross = Eigen::Vector3d(RE[0], RE[1], RE[2]).cross(Eigen::Vector3d(RD[0], RD[1], RD[2])).normalized();
+                    cross = CalcParentsInverseRotation(i) * cross;
+                    data_list[i].MyRotate(cross, alpha / 30);
+                }
+
+                if (dist < 0.1)
+                    isActive = false;
             }
 
         } // end namespace

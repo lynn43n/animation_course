@@ -68,14 +68,18 @@ void glfw_mouse_move(GLFWwindow* window, double x, double y)
 	{
 		rndr->MouseProcessing(GLFW_MOUSE_BUTTON_LEFT);
 	}
+
 }
 
 static void glfw_mouse_scroll(GLFWwindow* window, double x, double y)
 {
 	Renderer* rndr = (Renderer*)glfwGetWindowUserPointer(window);
-	if (rndr->IsPicked()) //rotation same as arrows
-		rndr->GetScene()->data().MyScale(Eigen::Vector3d(1 + y * 0.01, 1 + y * 0.01, 1 + y * 0.01));
-	else 
+	if (rndr->IsPicked())
+		if (rndr->GetScene()->selected_data_index == 0)
+			rndr->GetScene()->data().MyTranslateInSystem(rndr->GetScene()->GetRotation(), Eigen::Vector3d(0, 0, y));
+		else
+			rndr->GetScene()->data_list[1].MyTranslateInSystem(rndr->GetScene()->GetRotation(), Eigen::Vector3d(0, 0, y));
+	else
 		rndr->GetScene()->MyTranslate(Eigen::Vector3d(0, 0, -y * 0.03), true);
 }
 
@@ -190,7 +194,9 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 			(scn->selected_data_index != -1) ? scn->data().MyRotate(Eigen::Vector3d(0, 1, 0), 0.1) : scn->MyRotate(Eigen::Vector3d(0, 1, 0), 0.1);
 			break;
 		case ' ':
-			scn->ikAnimation = !scn->ikAnimation;
+			// toggle ik solver aniimation
+			
+			scn->togleCCD();
 			break;
 		case 'L':
 		case 'l':

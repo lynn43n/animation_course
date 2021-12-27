@@ -127,11 +127,6 @@ bool Display::launch_rendering(bool loop)
 		renderer->Animate();
 		renderer->draw(window);
 		glfwSwapBuffers(window);
-		if (renderer->GetScene()->ikAnimation)
-			renderer->GetScene()->ik_solver();
-
-		if (renderer->GetScene()->fabricAnimation)
-			renderer->GetScene()->fabrik_solver();
 
 		if (renderer->core().is_animating || frame_counter++ < num_extra_frames)
 		{//motion
