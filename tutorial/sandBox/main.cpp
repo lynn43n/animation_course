@@ -2,49 +2,126 @@
 #include "igl/opengl/glfw/renderer.h"
 #include "tutorial/sandBox/inputManager.h"
 #include "sandBox.h"
+#include <imgui/imgui.cpp>
 
 using namespace std;
 
-static void drawDotsAndLines(igl::opengl::glfw::Viewer& viewer) {
-	Eigen::Matrix4d parents = Eigen::Matrix4d().Identity();
-	for (int i = 0; i <= 0; i++) {
-		viewer.data_list[i].MyTranslateInSystem(viewer.data_list[i].GetRotation(), Eigen::RowVector3d(0, 0, 1.6));
-		viewer.data_list[i].tree.init(viewer.data_list[i].V, viewer.data_list[i].F);
-		viewer.data_list[i].drawAxis(viewer.data_list[i].kd_tree.m_box);
-		viewer.data_list[i].SetCenterOfRotation(Eigen::Vector3d(0, -0.8, 0));
-		//viewer.data_list[i].show_overlay_depth = false;
-		//viewer.data_list[i].show_lines = false;
-		/*
+static bool toggleButton(const char *id) {
+	//https://github.com/ocornut/imgui/issues/1537
+	static bool enable_7m = false;  // default value, the button is disabled 
+	static float b = 1.0f; //  test whatever color you need from imgui_demo.cpp e.g.
+	static float c = 0.5f; // 
+	static int i = 3;
+	bool showWindow = true;
+	if (enable_7m == true)
+	{
 
-		if (i != 4) {
-			viewer.data_list[i].add_points(Eigen::RowVector3d(0, 0.8, 0), Eigen::RowVector3d(0, 0, 255));
-			viewer.data_list[i].add_edges(Eigen::RowVector3d(0, -0.8, 0), Eigen::RowVector3d(0, 2.4, 0), Eigen::RowVector3d(0, 255, 0));
-			viewer.data_list[i].add_edges(Eigen::RowVector3d(-1.6, 0.8, 0), Eigen::RowVector3d(1.6, 0.8, 0), Eigen::RowVector3d(255, 0, 0));
-			viewer.data_list[i].add_edges(Eigen::RowVector3d(0, 0.8, -1.6), Eigen::RowVector3d(0, 0.8, 1.6), Eigen::RowVector3d(0, 0, 255));
-			viewer.data_list[i].point_size = 10;
-			viewer.data_list[i].line_width = 3;
-		}
-		*/
+		ImGui::PushID(id);
+		ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(i / 7.0f, b, b));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(i / 7.0f, b, b));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(i / 7.0f, c, c));
+		ImGui::Button(id);
+	
+		//if (ImGui::IsItemClicked(0))
+		//{
+		//	enable_7m = !enable_7m;
+		//}
+
+		ImGui::PopStyleColor(3);
+		ImGui::PopID();
+		showWindow = false;
+
+
 	}
+	else
+	{
+		if (ImGui::Button("Let's Start"))
+			enable_7m = true;
+	}
+	return showWindow;
 }
 int main(int argc, char* argv[])
 {
-	Display* disp = new Display(1200, 800, "Welcome");
+	Display* disp = new Display(1000, 800, "Animation3D - Final Project");
 	Renderer renderer;
-
 	SandBox viewer;
-
-	igl::opengl::glfw::imgui::ImGuiMenu* menu = new igl::opengl::glfw::imgui::ImGuiMenu();
+	igl::opengl::glfw::imgui::ImGuiMenu menu;
 	viewer.Init("configuration.txt");
-
-	//viewer.MyTranslate(Eigen::Vector3d(0, -3, -8),true);
-	//viewer.data_list[0].MyTranslate(Eigen::Vector3d(5, 0, 0),true);
-	//drawDotsAndLines(viewer);
-
-	Init(*disp, menu);
-	renderer.init(&viewer, 2, menu);
 	disp->SetRenderer(&renderer);
+	
+	menu.callback_draw_viewer_window = [&]() {
+		ImGui::CreateContext();
+		// Define next window position + size
+		ImGui::SetNextWindowPos(ImVec2(180.f * menu.menu_scaling(), 10), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(400, 320), ImGuiCond_FirstUseEver);
+		static bool showWindow = true;
+		if (showWindow) {
+			if (!ImGui::Begin(
+				"You Lost", &showWindow,
+				ImGuiWindowFlags_NoSavedSettings
+			)) {
+				ImGui::End();
+			}
+			else {
+				// Expose the same variable directly ...
+				ImGui::PushItemWidth(-80);
+				ImGui::Text("Your Score is: %d", viewer.score);
+				ImGui::Text("Level Number: %d", viewer.level);
+				ImGui::PopItemWidth();
+
+
+				showWindow = toggleButton("Let's Play Again");
+				viewer.score = 0;
+				viewer.level = 1;
+				viewer.start = true;
+
+				//ImGuiWindow* window = ImGui::FindWindowByName("Let's Play");
+
+				ImGui::End();
+			}
+		}
+
+	};
+
+	menu.callback_draw_custom_window = [&]()
+	{
+		ImGui::CreateContext();
+		// Define next window position + size
+		ImGui::SetNextWindowPos(ImVec2(180.f * menu.menu_scaling(), 10), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(200, 160), ImGuiCond_FirstUseEver);
+		static bool showWindow = true;
+		if (showWindow) {
+			if (!ImGui::Begin(
+				"Let's Play", &showWindow,
+				ImGuiWindowFlags_NoSavedSettings
+			)) {
+				ImGui::End();
+			}
+			else {
+				// Expose the same variable directly ...
+				ImGui::PushItemWidth(-80);
+				ImGui::Text("Your Score is: %d", viewer.score);
+				ImGui::Text("Level Number: %d", viewer.level);
+				ImGui::PopItemWidth();
+				
+
+				showWindow = toggleButton("Let's Play");
+
+				//ImGuiWindow* window = ImGui::FindWindowByName("Let's Play");
+				
+				ImGui::End();
+			}
+		}
+		
+	
+	};
+
+	Init(*disp, &menu);
+	renderer.init(&viewer, 3, &menu);
+	renderer.selected_core_index = 1;
+
 	disp->launch_rendering(true);
-	delete menu;
+	//delete &menu;
 	delete disp;
+	
 }

@@ -73,7 +73,14 @@ namespace igl
                 destination(Eigen::Vector3d(5, 0, 0)),
                 ikAnimation(false),
                 fabricAnimation(false),
-                link_length(1.6)
+                link_length(1.6), 
+                level(1),
+                score(0),
+                isCollisionSnake(false),
+                isCollisionTarget(false),
+                start(true),
+                isNextLevel(false),
+                gameLost(false)
             {
                 data_list.front().id = 0;
 
@@ -127,6 +134,15 @@ namespace igl
                     num = -1;
                 return num;
             }
+            //Ass4
+            void Viewer::updateScore() {
+                if (isCollisionTarget) {
+                    score = score + 1;
+                    isCollisionTarget = false;
+                }
+               
+            }
+            
 
             void Viewer::printTip() {
                 int lastLinkidx = link_num;

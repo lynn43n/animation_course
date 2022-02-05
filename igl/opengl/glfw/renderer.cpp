@@ -136,6 +136,30 @@ IGL_INLINE bool Renderer::is_collistion() {
 	return (distance <= obj1->m_box.sizes()[0]);
 }
 
+
+//ass 4
+void Renderer::showCorrectMenu() {
+	if (scn->isCollisionSnake) {
+		//show Lost menu
+		menu->callback_draw_viewer_window();
+		scn->gameLost = true;
+	}
+	else if (scn->isNextLevel) {
+		//show start level menu
+		scn->level++;
+		menu->callback_draw_custom_window();
+		scn->isNextLevel = false;
+		
+	}
+	else if (scn->start) {
+		//show start menu
+		menu->callback_draw_custom_window();
+		//scn->start = false;
+	}
+	else {
+		//no menu 
+	}
+}
 bool Renderer::checkCollisionRec(igl::AABB<Eigen::MatrixXd, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2) {
 	if (detec_collistion(node1->m_box, node2->m_box))
 	{
@@ -358,8 +382,9 @@ IGL_INLINE void Renderer::init(igl::opengl::glfw::Viewer* viewer, int coresNum, 
 		menu->callback_draw_viewer_menu = [&]()
 		{
 			// Draw parent menu content
-			menu->draw_viewer_menu(scn, core_list);
-
+			//menu->draw_viewer_menu(scn, core_list);
+			//menu->callback_draw_custom_window();
+			showCorrectMenu();
 
 		};
 	}

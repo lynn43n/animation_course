@@ -96,7 +96,7 @@ public:
 	// Callbacks
 	//bool Picking(double x, double y);
 	double Picking(double x, double y);
-
+	void Renderer::showCorrectMenu();
 	inline void Animate() { scn->Animate(); };
 	IGL_INLINE bool key_pressed(unsigned int unicode_key, int modifier);
 	IGL_INLINE void resize(GLFWwindow* window, int w, int h); // explicitly set window size
@@ -129,12 +129,13 @@ public:
 	bool isMovable = false;
 	Eigen::Vector3d moveDir = Eigen::Vector3d(-0.004, 0, 0);
 
+	std::vector<igl::opengl::ViewerCore> core_list;
+	size_t selected_core_index;
 	void toggleMove();
 private:
 	// Stores all the viewing options
-	std::vector<igl::opengl::ViewerCore> core_list;
 	igl::opengl::glfw::Viewer* scn;
-	size_t selected_core_index;
+	
 	int next_core_id;
 	float highdpi;
 	double xold, yold, xrel, yrel;

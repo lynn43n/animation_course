@@ -60,7 +60,8 @@ namespace igl
                 void SetNewShape(int savedIndex);
                 double legalRange(double num);
                 int legalRange(int num);
-
+                void Viewer::updateScore();
+                void Viewer::showCorrectMenu();
                 void Viewer::printTip();
                 void Viewer::printDestination();
                 void Viewer::printP();
@@ -164,7 +165,18 @@ namespace igl
 
                 bool ikAnimation;
                 bool fabricAnimation;
+                double delta;
+                bool isCCD;
+                int current_picked;
 
+                //Assignment 4 
+                int score;
+                int level; 
+                bool isCollisionTarget;
+                bool isCollisionSnake;
+                bool start;
+                bool isNextLevel;
+                bool gameLost;
                 // List of registered plugins
             //    std::vector<ViewerPlugin*> plugins;
 
