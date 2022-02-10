@@ -60,6 +60,9 @@ namespace igl
                 void SetNewShape(int savedIndex);
                 double legalRange(double num);
                 int legalRange(int num);
+                //ASS4
+                IGL_INLINE void move_targets();
+                IGL_INLINE void Viewer::generate_target();
                 void Viewer::updateScore();
                 void Viewer::showCorrectMenu();
                 void Viewer::printTip();
@@ -175,6 +178,9 @@ namespace igl
                 bool isCollisionTarget;
                 bool isCollisionSnake;
                 bool start;
+                int snake_size;
+                bool snake_view;
+                float prev_tic;
                 bool isNextLevel;
                 bool gameLost;
                 // List of registered plugins

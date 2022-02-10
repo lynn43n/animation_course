@@ -26,7 +26,78 @@
 #include <igl/vertex_triangle_adjacency.h>
 
 
+#define g  0.05
 
+IGL_INLINE void igl::opengl::ViewerData::init() {
+    std::cout << "init" << std::endl;
+    kd_tree.init(V, F);
+}
+
+IGL_INLINE void igl::opengl::ViewerData::drawAlignedBox(Eigen::AlignedBox<double, 3>& alignedBox, Eigen::RowVector3d& color) {
+    Eigen::MatrixXd V_box(8, 3); // Corners of the bounding box
+    Eigen::MatrixXi E_box(12, 2); // Edges of the bounding box
+    E_box <<
+        0, 1,
+        0, 2,
+        2, 3,
+        3, 1,
+        4, 5,
+        4, 6,
+        6, 7,
+        7, 5,
+        0, 4,
+        1, 5,
+        2, 6,
+        7, 3;
+
+    V_box.row(0) = alignedBox.corner(alignedBox.BottomRightCeil);
+    V_box.row(1) = alignedBox.corner(alignedBox.BottomRightFloor);
+    V_box.row(2) = alignedBox.corner(alignedBox.BottomLeftCeil);
+    V_box.row(3) = alignedBox.corner(alignedBox.BottomLeftFloor);
+    V_box.row(4) = alignedBox.corner(alignedBox.TopRightCeil);
+    V_box.row(5) = alignedBox.corner(alignedBox.TopRightFloor);
+    V_box.row(6) = alignedBox.corner(alignedBox.TopLeftCeil);
+    V_box.row(7) = alignedBox.corner(alignedBox.TopLeftFloor);
+
+    // Plot the corners of the bounding box as points
+    add_points(V_box, color);
+
+    // Plot the edges of the bounding box
+    for (unsigned i = 0; i < E_box.rows(); ++i)
+        add_edges
+        (
+            V_box.row(E_box(i, 0)),
+            V_box.row(E_box(i, 1)),
+            color
+        );
+
+}
+
+IGL_INLINE void igl::opengl::ViewerData::update_movement_type(unsigned int new_type)
+{
+    type = new_type;
+}
+
+IGL_INLINE void igl::opengl::ViewerData::initiate_speed()
+{
+    double x = ((double)rand() / (RAND_MAX)) - 0.5;
+    double y = ((double)rand() / (RAND_MAX)) - 0.5;
+    double z = ((double)rand() / (RAND_MAX)) - 0.5;
+
+    if (type == 2)
+        speed = Eigen::Vector3d(x / 10, y, z);
+    else
+        speed = Eigen::Vector3d(x / 10, y / 10, z);
+}
+
+IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
+{
+    if (face_based != newvalue)
+    {
+        face_based = newvalue;
+        dirty = MeshGL::DIRTY_ALL;
+    }
+}
 IGL_INLINE void igl::opengl::ViewerData::drawAxis(Eigen::AlignedBox<double, 3>& alignedBox) {
     line_width = 3.0f;
     point_size = 15;
@@ -317,6 +388,19 @@ IGL_INLINE bool igl::opengl::ViewerData::new_collapse_edge(
     return true;
 }
 
+IGL_INLINE void igl::opengl::ViewerData::move()
+{
+    MyTranslateInSystem(GetRotation(), speed);
+
+    if (type == 2) {
+        speed -= Eigen::Vector3d(0, g, 0);
+
+        if (Movable::Tout.matrix()(1, 3) < -5)
+            speed = Eigen::Vector3d(speed(0), -speed(1), speed(2));
+    }
+
+}
+
 IGL_INLINE void igl::opengl::ViewerData::eval_cost_places(
     const int mesh_id,
     const int e,
@@ -353,8 +437,10 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
     label_color(0, 0, 0.04, 1),
     shininess(35.0f),
     id(-1),
-    is_visible(1)
+    is_visible(1),
+    type(0)
 {
+    speed = Eigen::Vector3d(0, 0, 0);
     clear();
 };
 
@@ -422,7 +508,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_normals(const Eigen::MatrixXd& N)
     using namespace std;
     if (N.rows() == V.rows())
     {
-        set_face_based(false);
+        ViewerData::set_face_based(false);
         V_normals = N;
     }
     else if (N.rows() == F.rows() || N.rows() == F.rows() * 3)

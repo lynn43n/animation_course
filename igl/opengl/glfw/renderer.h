@@ -14,8 +14,8 @@ class Renderer
 {
 public:
 	Renderer();
-	IGL_INLINE void move_object();
 	~Renderer();
+	IGL_INLINE void move_object();
 	IGL_INLINE void draw(GLFWwindow* window);
 	IGL_INLINE void IKSolverAnimation();
 	void changeDirection(int dir);
@@ -132,6 +132,10 @@ public:
 	std::vector<igl::opengl::ViewerCore> core_list;
 	size_t selected_core_index;
 	void toggleMove();
+	//ass4
+	Eigen::Vector3f prev_camera_translation;
+	Eigen::Vector3f prev_camera_eye;
+	Eigen::Vector3f prev_camera_up;
 private:
 	// Stores all the viewing options
 	igl::opengl::glfw::Viewer* scn;

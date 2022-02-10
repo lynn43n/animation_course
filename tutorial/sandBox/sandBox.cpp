@@ -14,7 +14,7 @@ SandBox::SandBox()
 void SandBox::Init(const std::string& config)
 {
 
-	load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/sphere.obj");
+	load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/cube.obj");
 
 	Eigen::RowVector3d center(5, 0, 0);
 	parents.push_back(-1);
@@ -38,8 +38,8 @@ void SandBox::Animate()
 {
 	if (isActive)
 	{
-
-		animateCCD();
+		generate_target();
+		move_targets();
 
 	}
 }

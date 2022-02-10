@@ -66,13 +66,13 @@ int main(int argc, char* argv[])
 				// Expose the same variable directly ...
 				ImGui::PushItemWidth(-80);
 				ImGui::Text("Your Score is: %d", viewer.score);
-				ImGui::Text("Level Number: %d", viewer.level);
+				ImGui::Text("You have reached level number: %d", viewer.level);
 				ImGui::PopItemWidth();
 
 
 				showWindow = toggleButton("Let's Play Again");
-				viewer.score = 0;
-				viewer.level = 1;
+				//viewer.score = 0;
+				//viewer.level = 1;
 				viewer.start = true;
 
 				//ImGuiWindow* window = ImGui::FindWindowByName("Let's Play");

@@ -6,7 +6,10 @@
 //#include <Eigen/Dense>
 
 #include <cstdlib>
-
+//ass4
+#define VIEWPORT_WIDTH 1000
+#define VIEWPORT_HEIGHT 800
+/// end ass4
 Eigen::Matrix3d C;
 Renderer::Renderer() : selected_core_index(0),
 next_core_id(2)
@@ -71,50 +74,28 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 	for (auto& core : core_list)
 	{
 		int indx = 0;
+
 		for (auto& mesh : scn->data_list)
-		{
 
-			if (mesh.is_visible & core.id)
-			{// for kinematic chain change scn->MakeTrans to parent matrix
-				//Eigen::
-				//  sceneAndParents = (scn->MakeTransScale() * scn->data_list[mesh.id].ParentTrans());
-				//core.draw(sceneAndParents, mesh);
+			if (mesh.is_visible & core.id) {
+				{
+					if (selected_core_index == 1) {
 
-				//std::cout << "pick: " << scn->isPicked << std::endl;
-				//std::cout << "scene: " << scn->scene_selected << std::endl;
-				//std::cout << "index: " << scn->selected_data_index << std::endl;
-				core.draw(scn->MakeTransScale() * scn->CalcParentsTrans(indx).cast<float>(), mesh);
-
-				//****
-				/*
-				Eigen::Matrix4f temp = Eigen::Matrix4f::Identity();
-				if (mesh.id > 1)
-					temp = (scn->data_list[mesh.id].ParentTrans().cast<float>());
-				core.draw(scn->MakeTransScale() * temp, mesh);
-				*/
-
-				//scn->data_list[3].ParentTrans();
-				/*
-				igl::AABB<Eigen::MatrixXd, 3>* node1 = &scn->data_list[0].kd_tree;
-				igl::AABB<Eigen::MatrixXd, 3>* node2 = &scn->data_list[1].kd_tree;
-				if (checkCollisionRec(node1, node2) ) {
-						std::cout << "detec_collistion" << std::endl;
-						isMovable = false;
-
-
-				}
-				else {
-					if (isMovable) {
-						//GetScene()->data_list[0].MyTranslateInSystem(GetScene()->GetRotation(), moveDir);
+						Eigen::Matrix4d headTransMat = scn->MakeTransd() * scn->CalcParentsTrans(scn->snake_size - 1) * scn->data(scn->snake_size - 1).MakeTransd();
+						core.camera_translation = (headTransMat * Eigen::Vector4d(0, 0.8, 0.8, -1)).block(0, 0, 3, 1).cast<float>();
+						core.camera_eye = (headTransMat.block(0, 0, 3, 3) * Eigen::Vector3d(0, -1, 0)).block(0, 0, 3, 1).cast<float>();
+						core.camera_up = (headTransMat.block(0, 0, 3, 3) * Eigen::Vector3d(0, 0, -1)).block(0, 0, 3, 1).cast<float>();
+					}
+					else {
+						core.camera_translation = prev_camera_translation;
+						core.camera_eye = prev_camera_eye;
+						core.camera_up = prev_camera_up;
 					}
 
+					core.draw(scn->MakeTransScale() * scn->CalcParentsTrans(indx).cast<float>(), mesh);
 				}
-				*/
 			}
-			indx++;
-		}
-
-
+		indx++;
 	}
 	if (menu)
 	{
@@ -447,29 +428,21 @@ void Renderer::MouseProcessing(int button)
 	{
 		if (button == 1)
 		{
-			if (scn->selected_data_index == -1) {
-				scn->MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0), true);
-				scn->MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0), true);
-			}
-			else if (scn->selected_data_index > 0) {
-				scn->data(1).MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0), true);
-				scn->data(1).MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0), true);
-			}
-			else {
-				scn->data().MyTranslate(Eigen::Vector3d(-xrel / 180.0f, 0, 0), true);
-				scn->data().MyTranslate(Eigen::Vector3d(0, yrel / 180.0f, 0), true);
-			}
+			float near = core().camera_dnear, far = core().camera_dfar, angle = core().camera_view_angle;
+			float z = far + 0.5f * (near - far);
+
+
+			double xToMove = -(double)xrel / core().viewport[3] * far / z * near * 2.0f * tanf(angle / 360 * M_PI) / (core().camera_zoom * core().camera_base_zoom);
+			double yToMove = (double)yrel / core().viewport[3] * far / z * near * 2.0f * tanf(angle / 360 * M_PI) / (core().camera_zoom * core().camera_base_zoom);
+
+			scn->MyTranslate(Eigen::Vector3d(xToMove, 0, 0), true);
+			scn->MyTranslate(Eigen::Vector3d(0, yToMove, 0), true);
+
 		}
 		else
 		{
-			if (scn->selected_data_index == -1) {
-				scn->MyRotate(Eigen::Vector3d(0, -1, 0), xrel / 180.0f, true);
-				scn->MyRotate(Eigen::Vector3d(-1, 0, 0), yrel / 180.0f, false);
-			}
-			else {
-				scn->data().MyRotate(Eigen::Vector3d(0, -1, 0), xrel / 180.0f, true);
-				scn->data().MyRotate(Eigen::Vector3d(-1, 0, 0), yrel / 180.0f, false);
-			}
+			scn->MyRotate(Eigen::Vector3d(1, 0, 0), yrel / 180.0);
+			scn->MyRotate(Eigen::Vector3d(0, 1, 0), xrel / 180.0);
 		}
 	}
 }
@@ -639,56 +612,6 @@ double Renderer::Picking(double newx, double newy)
 
 
 
-/*
-double Renderer::Picking(double newx, double newy)
-{
-	int fid;
-	//Eigen::MatrixXd C = Eigen::MatrixXd::Constant(scn->data().F.rows(), 3, 1);
-	Eigen::Vector3f bc;
-	double x = newx;
-	double y = core().viewport(3) - newy;
-
-	Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
-
-	igl::look_at(core().camera_eye, core().camera_center, core().camera_up, view);
-	bool picked = false;
-	//std::cout << "view matrix\n" << view << std::endl;
-	Eigen::Matrix4f temp = Eigen::Matrix4f::Identity();
-	if (scn->selected_data_index > 0) {
-		temp = scn->data_list[scn->selected_data_index].ParentTrans().cast<float>();
-	}
-	view = view * (core().trackball_angle * Eigen::Scaling(core().camera_zoom * core().camera_base_zoom)
-		* Eigen::Translation3f(core().camera_translation + core().camera_base_translation)).matrix() * scn->MakeTransScale() * temp* scn->data_list[scn->selected_data_index].MakeTransScale();
-		picked = igl::unproject_onto_mesh(Eigen::Vector2f(x, y), view,
-			core().proj, core().viewport, scn->data().V, scn->data().F, fid, bc);
-
-		scn->isPicked = scn->isPicked | picked;
-		if (picked)
-		{
-			Eigen::Vector3i face = scn->data().F.row(fid);
-			Eigen::Matrix3d vertices;
-			Eigen::Vector4f p, pp;
-
-			vertices.col(0) = scn->data().V.row(face(0));
-			vertices.col(1) = scn->data().V.row(face(1));
-			vertices.col(2) = scn->data().V.row(face(2));
-
-			p << vertices.cast<float>() * bc, 1;
-			p = view * p;
-			//std::cout << scn->data().V.row(face(0)) << std::endl;
-			pp = core().proj * p;
-			//glReadPixels(x,  y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
-			z = pp(2);
-			return p(2);
-
-		}
-		return 0;
-}
-
-
-
-*/
-
 IGL_INLINE void Renderer::resize(GLFWwindow* window, int w, int h)
 {
 	if (window) {
@@ -790,22 +713,3 @@ IGL_INLINE int Renderer::append_core(Eigen::Vector4f viewport, bool append_empty
 	selected_core_index = core_list.size() - 1;
 	return core_list.back().id;
 }
-
-//IGL_INLINE void Viewer::select_hovered_core()
-//{
-//	int width_window, height_window = 800;
-//   glfwGetFramebufferSize(window, &width_window, &height_window);
-//	for (int i = 0; i < core_list.size(); i++)
-//	{
-//		Eigen::Vector4f viewport = core_list[i].viewport;
-
-//		if ((current_mouse_x > viewport[0]) &&
-//			(current_mouse_x < viewport[0] + viewport[2]) &&
-//			((height_window - current_mouse_y) > viewport[1]) &&
-//			((height_window - current_mouse_y) < viewport[1] + viewport[3]))
-//		{
-//			selected_core_index = i;
-//			break;
-//		}
-//	}
-//}

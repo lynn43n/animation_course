@@ -41,6 +41,7 @@
 #include <igl/snap_to_canonical_view_quat.h>
 #include <igl/unproject.h>
 #include <igl/serialize.h>
+#include <GLFW/glfw3.h>
 
 // Internal global variables used for glfw event handling
 //static igl::opengl::glfw::Viewer * __viewer;
@@ -80,7 +81,12 @@ namespace igl
                 isCollisionTarget(false),
                 start(true),
                 isNextLevel(false),
-                gameLost(false)
+                gameLost(false),
+                current_picked(-1),
+                delta(0.1),
+                snake_size(1),  // currently the head will be the circle
+                snake_view(false),
+                prev_tic(0)
             {
                 data_list.front().id = 0;
 
@@ -161,6 +167,42 @@ namespace igl
                 std::cout << mat << std::endl;
             }
 
+            IGL_INLINE void Viewer::move_targets()
+            {
+                for (auto& data : data_list) {
+                    if (data.type > 0)
+                        data.move();
+                }
+            }
+
+            IGL_INLINE void Viewer::generate_target()
+            {
+                float tic = static_cast<float>(glfwGetTime());
+                std::cout << tic << std::endl;
+                if (tic - prev_tic > 5) {
+                    prev_tic = tic;
+
+                    std::this_thread::sleep_for(std::chrono::microseconds(5));
+
+                    int savedIndx = selected_data_index;
+                    open_dialog_load_mesh();
+                    if (data_list.size() > parents.size())
+                    {
+                        parents.push_back(-1);
+                        data_list.back().set_visible(false, 1);
+                        data_list.back().set_visible(true, 2);
+                        data_list.back().show_faces = 3;
+                        selected_data_index = savedIndx;
+
+                        int last_index = data_list.size() - 1;
+
+                        if (last_index > 1)
+                            parents[last_index] = last_index - 1;
+                    }
+
+                }
+            }
+
             IGL_INLINE Eigen::Matrix4d Viewer::MakeParentTrans(int mesh_id) {
                 if (parents[mesh_id] == -1 || parents[mesh_id] == mesh_id)
                     return Eigen::Transform<double, 3, Eigen::Affine>::Identity().matrix();
@@ -183,7 +225,7 @@ namespace igl
             }
 
 
-
+            //Can Delete
             IGL_INLINE void Viewer::fabrik_solver() {
 
                 //todo  http://devguis.com/chapter-13-implementing-inverse-kinematics-hands-on-c-game-animation-programming.html
@@ -225,8 +267,6 @@ namespace igl
 
 
             }
-
-
 
             IGL_INLINE bool Viewer::load_mesh_from_file(
                 const std::string& mesh_file_name_string)
@@ -300,27 +340,27 @@ namespace igl
                     data().grid_texture();
                 }
 
-
                 //for (unsigned int i = 0; i<plugins.size(); ++i)
                 //  if (plugins[i]->post_load())
                 //    return true;
 
+                size_t file_name_idx = mesh_file_name_string.rfind('/');
+                std::string name = mesh_file_name_string.substr(file_name_idx + 1);
 
-                if (mesh_file_name_string != "C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/sphere.obj") {
-                    data().MyTranslateInSystem(data().GetRotation(), Eigen::RowVector3d(0, 0, 1.6));
-                    data().kd_tree.init(data().V, data().F);
-                    data().drawAxis(data().kd_tree.m_box);
-                    data().SetCenterOfRotation(Eigen::RowVector3d(0, 0, -0.8));
+                if (name == "sphere.obj") {
+                    data().update_movement_type(2);
 
-                    int lastLinkidx = link_num;
-                    tip = CalcParentsTrans(lastLinkidx) *
-                        data(lastLinkidx).MakeTransd() *
-                        Eigen::Vector4d(data(lastLinkidx).V.colwise().mean()[0], data(lastLinkidx).V.colwise().maxCoeff()[1], data(lastLinkidx).V.colwise().mean()[2], 1);
-                    
-                    link_num++;
-                    SetNewShape(link_num);
+                    if (data().type == 2)
+                        data().set_colors(Eigen::RowVector3d(1, 0, 0));
+                    else
+                        data().set_colors(Eigen::RowVector3d(0, 1, 0));
+
+                    // if current object is a target then init its speed vector
+                    if (data().type > 0)
+                        data().initiate_speed();
                 }
 
+                data().init(); // initiate object fields
 
                 return true;
             }

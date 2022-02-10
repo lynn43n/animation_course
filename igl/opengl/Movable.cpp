@@ -40,7 +40,6 @@ Eigen::Matrix4d Movable::ParentTrans() {
 	return ans;
 }
 
-
 void Movable::setCenterOfRot(Eigen::Vector3d new_center)
 {
 	Tin.pretranslate(-new_center);
@@ -101,6 +100,7 @@ void Movable::SetCenterOfRotation(Eigen::Vector3d amt)
 
 
 }
+//to delete
 Eigen::Vector3d Movable::getCenterOfRotationTout()
 {
 	return -Tout.translation();

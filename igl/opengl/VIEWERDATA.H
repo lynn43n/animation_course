@@ -60,7 +60,21 @@ namespace igl
 
             IGL_INLINE void eval_cost_places(const int mesh_id, const int e, const Eigen::MatrixXd& V, double& cost, Eigen::Vector3d& p);
 
+            //////////////////////ass4/////////////////////////////
 
+            // move the object according to the chosen direction
+            IGL_INLINE void drawAlignedBox(Eigen::AlignedBox<double, 3>&, Eigen::RowVector3d&);
+
+            // change current location by speed
+            IGL_INLINE void move();
+
+            IGL_INLINE void update_movement_type(unsigned int);
+
+            IGL_INLINE void initiate_speed();
+
+            IGL_INLINE void init();
+
+            ///////////////////////////////////////////////
 
             // Empty all fields
             IGL_INLINE void clear();
@@ -218,6 +232,13 @@ namespace igl
             Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture_B;
             Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture_A;
 
+
+            //ass4 
+
+
+            Eigen::Vector3d speed;
+            // 0 - none, 1- basic, 2- bouncy, 4- bezier
+            unsigned int type;
             // Overlays
 
             // Lines plotted over the scene

@@ -25,7 +25,7 @@ public:
 	~Display();
 //private:
 	GLFWwindow* window;
-	//Renderer* renderer;
+	void* renderer;
 	//int highdpi;  //relation between width and height?
 
 };

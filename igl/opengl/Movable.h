@@ -37,8 +37,9 @@ public:
 	Eigen::Affine3d GetTout() const { return Tout; }
 
 	virtual ~Movable() {}
-private:
 	Eigen::Affine3d Tout, Tin;
 	Movable* parent;
+private:
+	
 };
 
