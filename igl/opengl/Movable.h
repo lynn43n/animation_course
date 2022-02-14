@@ -7,39 +7,38 @@
 class Movable
 {
 public:
+	Eigen::Affine3d Tout, Tin;
+	
+
 	Movable();
 	Movable(const Movable& mov);
-	Eigen::Matrix4f MakeTransScale(); //delete
+	Eigen::Matrix4f MakeTransScale();
 	Eigen::Matrix4d MakeTransd();
-	Eigen::Matrix4d ParentTrans();
-	void setParent(Movable* parentRef);
-	Movable* getParent();
 	Eigen::Matrix4d MakeTransScaled();
 	void MyTranslate(Eigen::Vector3d amt, bool preRotation);
-	void MyRotate(Eigen::Vector3d rotAxis, double angle); 
+	void MyRotate(Eigen::Vector3d rotAxis, double angle);
 	void MyRotate(const Eigen::Matrix3d& rot);
-	void MyRotate(Eigen::Vector3d rotAxis, double angle, bool yAxis);
+	void MyRotate(Eigen::Vector3d rotAxis, double angle, bool zAxis);
+	// project
+	Eigen::Quaterniond GetRotationQ();
+	void Movable::RotateInSystem(Eigen::Matrix4d Mat, Eigen::Vector3d rotAxis, double angle);
+	Eigen::Vector3d Movable::GetCenter();
+
 	void MyScale(Eigen::Vector3d amt);
 
-
-
 	void SetCenterOfRotation(Eigen::Vector3d amt);
-	Eigen::Vector3d getCenterOfRotationTout();
-	Eigen::Vector3d GetCenterOfRotation();
-	Eigen::Vector3d getCenterOfRotation();
-	void setCenterOfRot(Eigen::Vector3d new_center);
+
 	void MyTranslateInSystem(Eigen::Matrix3d rot, Eigen::Vector3d amt);
+
 	void RotateInSystem(Eigen::Vector3d rotAxis, double angle);
 
+	void Movable::MyRotate(const Eigen::Quaterniond rot);
+	void Movable::RotateInSystem(const Eigen::Matrix3d& mat, const Eigen::Quaterniond rot);
+	
 
 	Eigen::Matrix3d GetRotation() const { return Tout.rotation().matrix(); }
-	Eigen::Affine3d GetTin() const { return Tin; }
-	Eigen::Affine3d GetTout() const { return Tout; }
 
 	virtual ~Movable() {}
-	Eigen::Affine3d Tout, Tin;
-	Movable* parent;
 private:
-	
+	//Eigen::Affine3d Tout,Tin;
 };
-

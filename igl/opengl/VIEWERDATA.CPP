@@ -9,417 +9,14 @@
 #include "ViewerData.h"
 #include "ViewerCore.h"
 
-
 #include "../per_face_normals.h"
 #include "../material_colors.h"
 #include "../parula.h"
 #include "../per_vertex_normals.h"
 #include "igl/png/texture_from_png.h"
 #include <iostream>
-//#include "external/stb/igl_stb_image.h"
+#define g 0.005
 
-#include <igl/edge_flaps.h>
-#include <igl/shortest_edge_and_midpoint.h>
-#include <igl/collapse_edge.h>
-#include <igl/circulation.h>
-
-#include <igl/vertex_triangle_adjacency.h>
-
-
-#define g  0.05
-
-IGL_INLINE void igl::opengl::ViewerData::init() {
-    std::cout << "init" << std::endl;
-    kd_tree.init(V, F);
-}
-
-IGL_INLINE void igl::opengl::ViewerData::drawAlignedBox(Eigen::AlignedBox<double, 3>& alignedBox, Eigen::RowVector3d& color) {
-    Eigen::MatrixXd V_box(8, 3); // Corners of the bounding box
-    Eigen::MatrixXi E_box(12, 2); // Edges of the bounding box
-    E_box <<
-        0, 1,
-        0, 2,
-        2, 3,
-        3, 1,
-        4, 5,
-        4, 6,
-        6, 7,
-        7, 5,
-        0, 4,
-        1, 5,
-        2, 6,
-        7, 3;
-
-    V_box.row(0) = alignedBox.corner(alignedBox.BottomRightCeil);
-    V_box.row(1) = alignedBox.corner(alignedBox.BottomRightFloor);
-    V_box.row(2) = alignedBox.corner(alignedBox.BottomLeftCeil);
-    V_box.row(3) = alignedBox.corner(alignedBox.BottomLeftFloor);
-    V_box.row(4) = alignedBox.corner(alignedBox.TopRightCeil);
-    V_box.row(5) = alignedBox.corner(alignedBox.TopRightFloor);
-    V_box.row(6) = alignedBox.corner(alignedBox.TopLeftCeil);
-    V_box.row(7) = alignedBox.corner(alignedBox.TopLeftFloor);
-
-    // Plot the corners of the bounding box as points
-    add_points(V_box, color);
-
-    // Plot the edges of the bounding box
-    for (unsigned i = 0; i < E_box.rows(); ++i)
-        add_edges
-        (
-            V_box.row(E_box(i, 0)),
-            V_box.row(E_box(i, 1)),
-            color
-        );
-
-}
-
-IGL_INLINE void igl::opengl::ViewerData::update_movement_type(unsigned int new_type)
-{
-    type = new_type;
-}
-
-IGL_INLINE void igl::opengl::ViewerData::initiate_speed()
-{
-    double x = ((double)rand() / (RAND_MAX)) - 0.5;
-    double y = ((double)rand() / (RAND_MAX)) - 0.5;
-    double z = ((double)rand() / (RAND_MAX)) - 0.5;
-
-    if (type == 2)
-        speed = Eigen::Vector3d(x / 10, y, z);
-    else
-        speed = Eigen::Vector3d(x / 10, y / 10, z);
-}
-
-IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
-{
-    if (face_based != newvalue)
-    {
-        face_based = newvalue;
-        dirty = MeshGL::DIRTY_ALL;
-    }
-}
-IGL_INLINE void igl::opengl::ViewerData::drawAxis(Eigen::AlignedBox<double, 3>& alignedBox) {
-    line_width = 3.0f;
-    point_size = 15;
-
-    Eigen::MatrixXd V_box(8, 3); // Corners of the bounding box
-    Eigen::MatrixXd V_boxz(2, 3); // Corners of the bounding box
-    Eigen::MatrixXd V_boxy(2, 3); // Corners of the bounding box
-    Eigen::MatrixXd V_boxx(2, 3); // Corners of the bounding box
-
-    V_box.row(0) = alignedBox.corner(alignedBox.BottomRightCeil);
-    V_box.row(1) = alignedBox.corner(alignedBox.BottomRightFloor);
-    V_box.row(2) = alignedBox.corner(alignedBox.BottomLeftCeil);
-    V_box.row(3) = alignedBox.corner(alignedBox.BottomLeftFloor);
-    V_box.row(4) = alignedBox.corner(alignedBox.TopRightCeil);
-    V_box.row(5) = alignedBox.corner(alignedBox.TopRightFloor);
-    V_box.row(6) = alignedBox.corner(alignedBox.TopLeftCeil);
-    V_box.row(7) = alignedBox.corner(alignedBox.TopLeftFloor);
-
-    V_boxz.row(0) = (V_box.row(0) + V_box.row(2) + V_box.row(4) + V_box.row(6)) / 4;
-    V_boxz.row(1) = (V_box.row(1) + V_box.row(3) + V_box.row(5) + V_box.row(7)) / 4;
-
-    add_points(V_boxz, Eigen::RowVector3d(0, 0, 0));
-
-    V_boxy.row(0) = (V_box.row(0) + V_box.row(1) + V_box.row(2) + V_box.row(3)) / 4;
-    V_boxy.row(1) = (V_box.row(4) + V_box.row(5) + V_box.row(6) + V_box.row(7)) / 4;
-
-    V_boxx.row(0) = (V_box.row(0) + V_box.row(1) + V_box.row(4) + V_box.row(5)) / 4;
-    V_boxx.row(1) = (V_box.row(2) + V_box.row(3) + V_box.row(6) + V_box.row(7)) / 4;
-
-    add_edges
-    (
-        V_boxz.row(0) * 1.5,
-        V_boxz.row(1) * 1.5,
-        Eigen::RowVector3d(0, 0, 1)
-    );
-
-    add_edges
-    (
-        V_boxy.row(0) * 2,
-        V_boxy.row(1) * 2,
-        Eigen::RowVector3d(0, 1, 0)
-    );
-
-    add_edges
-    (
-        V_boxx.row(0) * 2,
-        V_boxx.row(1) * 2,
-        Eigen::RowVector3d(1, 0, 0)
-    );
-
-}
-
- 
-void igl::opengl::ViewerData::drawBox(Eigen::AlignedBox<double, 3> alignedBox, int color) {
-    Eigen::RowVector3d colorVec;
-    if (color == 1) {
-        colorVec = Eigen::RowVector3d(255, 0, 0);
-    }
-    else if (color == 2) {
-        colorVec = Eigen::RowVector3d(0, 0, 255);
-    }
-    else colorVec = Eigen::RowVector3d(0, 255, 0);
-    Eigen::MatrixXd V_box(8, 3); // Corners of the bounding box
-    Eigen::MatrixXi E_box(12, 2); // Edges of the bounding box
-    E_box <<
-        0, 1,
-        0, 2,
-        2, 3,
-        3, 1,
-        4, 5,
-        4, 6,
-        6, 7,
-        7, 5,
-        0, 4,
-        1, 5,
-        2, 6,
-        7, 3;
-
-    V_box.row(0) = alignedBox.corner(alignedBox.BottomRightCeil);
-    V_box.row(1) = alignedBox.corner(alignedBox.BottomRightFloor);
-    V_box.row(2) = alignedBox.corner(alignedBox.BottomLeftCeil);
-    V_box.row(3) = alignedBox.corner(alignedBox.BottomLeftFloor);
-    V_box.row(4) = alignedBox.corner(alignedBox.TopRightCeil);
-    V_box.row(5) = alignedBox.corner(alignedBox.TopRightFloor);
-    V_box.row(6) = alignedBox.corner(alignedBox.TopLeftCeil);
-    V_box.row(7) = alignedBox.corner(alignedBox.TopLeftFloor);
-
-    // Plot the corners of the bounding box as points
-    add_points(V_box, colorVec);
-
-    // Plot the edges of the bounding box
-    for (unsigned i = 0; i < E_box.rows(); ++i) {
-        add_edges
-        (
-            V_box.row(E_box(i, 0)),
-            V_box.row(E_box(i, 1)),
-            colorVec
-        );
-    }
-       
-}
-
-
-IGL_INLINE bool igl::opengl::ViewerData::init_mesh()
-{
-
-    F_clone = F;
-    V_clone = V;
-    Q = new PriorityQueue;
-    Q_iterator = new std::vector<PriorityQueue::iterator>;
-    int edge_col_num = 0;
-    count_collapse = 0;
-
-    edge_flaps(F, E, EMAP, EF, EI);
-    Q_iterator->resize(E.rows());
-    Quadric.resize(V.rows());
-    C.resize(E.rows(), V.cols());
-    Eigen::VectorXd costs(E.rows());
-    deriving_error_quadric();
-    double cost = 0;
-    Q->clear();
-    face_normals_dec = F_normals;
-
-
-    for (int i = 0; i < E.rows(); i++)
-    {
-        Eigen::Vector3d place;
-
-        eval_cost_places(id, i, V, cost, place);
-
-        C.row(i) = place;
-        (*Q_iterator)[i] = Q->insert(std::pair<double, int>(cost, i)).first;
-    }
-    set_mesh(V, F);
-
-    // ass2
-    kd_tree.init(V, F);
-
-    return true;
-}
-
-IGL_INLINE void igl::opengl::ViewerData::deriving_error_quadric() {
-
-    Eigen::MatrixXd V = V_clone;
-    Eigen::MatrixXi F = F_clone;
-    std::vector<std::vector<int> > VectorF;
-    std::vector<std::vector<int> > VectorFi;
-
-    igl::vertex_triangle_adjacency(V, F, VectorF, VectorFi);
-
-    for (int vectori = 0; vectori < V.rows(); vectori++) {
-
-        std::vector<int> faces;
-        Quadric[vectori] = Eigen::Matrix4d::Zero();
-
-        for (int face_i = 0; face_i < VectorF[vectori].size(); face_i++) {
-            Eigen::Vector3d normalize = F_normals.row(VectorF[vectori][face_i]).normalized().transpose();
-            double a = normalize[0];
-            double b = normalize[1];
-            double c = normalize[2];
-            double d = -1 * normalize.dot(V.row(vectori));
-
-            Eigen::Matrix4d Kp;
-            Kp.row(0) = Eigen::Vector4d(a * a, a * b, a * c, a * d);
-            Kp.row(1) = Eigen::Vector4d(a * b, b * b, b * c, b * d);
-            Kp.row(2) = Eigen::Vector4d(a * c, b * c, c * c, c * d);
-            Kp.row(3) = Eigen::Vector4d(a * d, d * b, d * c, d * d);
-
-            Quadric[vectori] += Kp;
-        }
-    }
-
-}
-
-
-IGL_INLINE void igl::opengl::ViewerData::Simplification(int num_of_faces) {
-
-    //f. Prints the number of the collapse edge, its cost and the position of the new vertex ollowing
-
-    bool is_collapsed = false;
-    //face_normals_dec = F_normals;
-    for (int j = 0; j < num_of_faces; j++)
-    {
-        //shortest_edge_and_midpoint
-
-        if (!new_collapse_edge(V, F, E, EMAP, EF, EI, *Q, *Q_iterator, C))
-        {
-            break;
-        }
-
-        is_collapsed = true;
-        count_collapse++;
-    }
-
-    if (is_collapsed)
-    {
-        Eigen::MatrixXd new_V = V;
-        Eigen::MatrixXi new_F = F;
-
-        clear();
-        set_mesh(new_V, new_F);
-        set_face_based(true);
-        dirty = 157;
-        std::cout << "number of collapse edges: " << count_collapse << std::endl;
-    }
-}
-
-IGL_INLINE bool igl::opengl::ViewerData::new_collapse_edge(
-    Eigen::MatrixXd& V,
-    Eigen::MatrixXi& F,
-    Eigen::MatrixXi& E,
-    Eigen::VectorXi& EMAP,
-    Eigen::MatrixXi& EF,
-    Eigen::MatrixXi& EI,
-    std::set<std::pair<double, int> >& Q,
-    std::vector<std::set<std::pair<double, int> >::iterator >& Qit,
-    Eigen::MatrixXd& C)
-{
-    if (Q.empty()) // gurad - check if there is an edge to collapse
-        return false;
-
-    std::pair<double, int> edge = *(Q.begin()); // pop the next edge to collapse
-    if (edge.first == std::numeric_limits<double>::infinity())
-    {
-        return false;
-    }
-
-    Q.erase(Q.begin());
-
-    int e = edge.second;
-    Qit[e] = Q.end();
-
-    std::vector<int> N = circulation(e, true, EMAP, EF, EI);
-    std::vector<int> Nd = circulation(e, false, EMAP, EF, EI);
-    N.insert(N.begin(), Nd.begin(), Nd.end());
-
-    int vid1 = E.row(e)[0], vid2 = E.row(e)[1];
-
-    int e1, e2, f1, f2;
-    Eigen::Vector3d new_v = C.row(e);
-    bool collapsed = igl::collapse_edge(e, C.row(e), V, F, E, EMAP, EF, EI, e1, e2, f1, f2);
-
-    if (collapsed)
-    {
-        // update the quad of the new vertex		
-        Quadric[vid1] = Quadric[vid1] + Quadric[vid2];
-        Quadric[vid2] = Quadric[vid1] + Quadric[vid2];
-
-        // Erase the two, other collapsed edges
-        Q.erase(Qit[e1]);
-        Qit[e1] = Q.end();
-        Q.erase(Qit[e2]);
-        Qit[e2] = Q.end();
-        // update local neighbors
-        // loop over original face neighbors
-        for (auto n : N)
-        {
-            if (F(n, 0) != IGL_COLLAPSE_EDGE_NULL ||
-                F(n, 1) != IGL_COLLAPSE_EDGE_NULL ||
-                F(n, 2) != IGL_COLLAPSE_EDGE_NULL)
-            {
-                for (int v = 0; v < 3; v++)
-                {
-                    // get edge id
-                    const int ei = EMAP(v * F.rows() + n);
-                    // erase old entry
-                    Q.erase(Qit[ei]);
-                    // compute cost and potential placement
-                    double cost;
-                    Eigen::Vector3d place;
-                    eval_cost_places(id, ei, V, cost, place);
-                    // Replace in queue
-                    Qit[ei] = Q.insert(std::pair<double, int>(cost, ei)).first;
-                    C.row(ei) = place;
-                }
-            }
-        }
-        std::cout << "edge " << e << " cost = " << edge.first << ", new position (" << new_v[0] << ", " << new_v[1] << ", " << new_v[2] << ")" << std::endl;
-
-    }
-    else
-    {
-        // reinsert with infinite weight (the provided cost function must **not**
-        // have given this un-collapsable edge inf cost already)
-        edge.first = std::numeric_limits<double>::infinity();
-        Qit[e] = Q.insert(edge).first;
-    }
-    return true;
-}
-
-IGL_INLINE void igl::opengl::ViewerData::move()
-{
-    MyTranslateInSystem(GetRotation(), speed);
-
-    if (type == 2) {
-        speed -= Eigen::Vector3d(0, g, 0);
-
-        if (Movable::Tout.matrix()(1, 3) < -5)
-            speed = Eigen::Vector3d(speed(0), -speed(1), speed(2));
-    }
-
-}
-
-IGL_INLINE void igl::opengl::ViewerData::eval_cost_places(
-    const int mesh_id,
-    const int e,
-    const Eigen::MatrixXd& V,
-    double& cost,
-    Eigen::Vector3d& place)
-{
-    int vertix1 = E(e, 0);
-    int vertix2 = E(e, 1);
-
-    Eigen::Matrix4d QCombinePlaces = Quadric[vertix1] + Quadric[vertix2];
-    Eigen::Matrix4d Qoriginal = QCombinePlaces;
-    Qoriginal.row(3) = Eigen::Vector4d(0, 0, 0, 1);
-    Eigen::VectorXd v = Qoriginal.inverse() * (Eigen::Vector4d(0, 0, 0, 1));
-    cost = v.transpose() * QCombinePlaces * v;
-    v.conservativeResize(3);
-    place = v;
-
-}
 
 IGL_INLINE igl::opengl::ViewerData::ViewerData()
     : dirty(MeshGL::DIRTY_ALL),
@@ -453,6 +50,81 @@ IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
     }
 }
 
+
+
+//project comment
+IGL_INLINE void igl::opengl::ViewerData::move()
+{
+    //std::cout << speed << std::endl;
+
+    MyTranslateInSystem(GetRotation(), speed);
+
+    if (type == 2) { //bouncy type, gravity movment
+        speed -= Eigen::Vector3d(0, g, 0);
+
+        if (Tout.matrix()(1, 3) < -5) //(1,3) its y position of tout matrix, -5 is random number to imaginaite all most touching the floor
+            speed = Eigen::Vector3d(speed(0), -speed(1), speed(2));
+    }
+
+}
+
+IGL_INLINE void igl::opengl::ViewerData::update_movement_type(unsigned int new_type)
+{
+    type = new_type;
+}
+
+IGL_INLINE void igl::opengl::ViewerData::initiate_speed(int level)
+{
+    //maybe change position of x y z, random values cause problem in velocity and direction
+    double x = ((double)rand() / (RAND_MAX)) - 0.5;
+    double y = ((double)rand() / (RAND_MAX)) - 0.5;
+    double z = ((double)rand() / (RAND_MAX)) - 0.5;
+
+    //calc velocity depends on the level, multiple by constants(0.06,0.08) to slow it down little bit
+    if (type == 2)
+        speed = (0.06 * level) * Eigen::Vector3d(x / 10, y, z);
+    else
+        speed = (0.08 * level) * Eigen::Vector3d(x / 10, y / 10, z);
+}
+//end project
+
+//Ass2 comment
+void igl::opengl::ViewerData::drawBox(Eigen::AlignedBox<double, 3> box, int color) {
+    /*point_size = 10;
+    line_width = 2;*/
+    Eigen::RowVector3d colorVec;
+    if (color == 1) {
+        colorVec = Eigen::RowVector3d(255, 255, 255);//white
+    }
+    else
+        colorVec = Eigen::RowVector3d(0, 255, 0);//green
+    //parameters in order to minimize run-time
+    Eigen::RowVector3d BottomRightCeil = box.corner(box.BottomRightCeil);
+    Eigen::RowVector3d BottomRightFloor = box.corner(box.BottomRightFloor);
+    Eigen::RowVector3d BottomLeftCeil = box.corner(box.BottomLeftCeil);
+    Eigen::RowVector3d BottomLeftFloor = box.corner(box.BottomLeftFloor);
+    Eigen::RowVector3d TopRightCeil = box.corner(box.TopRightCeil);
+    Eigen::RowVector3d TopRightFloor = box.corner(box.TopRightFloor);
+    Eigen::RowVector3d TopLeftCeil = box.corner(box.TopLeftCeil);
+    Eigen::RowVector3d TopLeftFloor = box.corner(box.TopLeftFloor);
+
+    //add_edges(n1,n2,col)- draws edge from n1 to n2 in color col
+    add_edges(BottomLeftCeil, BottomRightCeil, colorVec);
+    add_edges(BottomLeftCeil, BottomLeftFloor, colorVec);
+    add_edges(BottomRightCeil, BottomRightFloor, colorVec);
+    add_edges(BottomLeftFloor, BottomRightFloor, colorVec);
+    add_edges(TopLeftCeil, TopRightCeil, colorVec);
+    add_edges(TopRightCeil, TopRightFloor, colorVec);
+    add_edges(TopLeftCeil, TopLeftFloor, colorVec);
+    add_edges(TopLeftFloor, TopRightFloor, colorVec);
+    add_edges(TopLeftCeil, BottomLeftCeil, colorVec);
+    add_edges(TopRightFloor, BottomRightFloor, colorVec);
+    add_edges(TopRightCeil, BottomRightCeil, colorVec);
+    add_edges(TopLeftFloor, BottomLeftFloor, colorVec);
+}
+//end comment Ass2
+
+
 // Helpers that draws the most common meshes
 IGL_INLINE void igl::opengl::ViewerData::set_mesh(
     const Eigen::MatrixXd& _V, const Eigen::MatrixXi& _F)
@@ -480,8 +152,8 @@ IGL_INLINE void igl::opengl::ViewerData::set_mesh(
             Eigen::Vector3d(GOLD_AMBIENT[0], GOLD_AMBIENT[1], GOLD_AMBIENT[2]),
             Eigen::Vector3d(GOLD_DIFFUSE[0], GOLD_DIFFUSE[1], GOLD_DIFFUSE[2]),
             Eigen::Vector3d(GOLD_SPECULAR[0], GOLD_SPECULAR[1], GOLD_SPECULAR[2]));
-        image_texture("../../../tutorial/textures/snake1.png");
-        //    grid_texture();
+        image_texture("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/textures/snake1.png");
+     
     }
     else
     {
@@ -508,7 +180,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_normals(const Eigen::MatrixXd& N)
     using namespace std;
     if (N.rows() == V.rows())
     {
-        ViewerData::set_face_based(false);
+        set_face_based(false);
         V_normals = N;
     }
     else if (N.rows() == F.rows() || N.rows() == F.rows() * 3)
@@ -529,14 +201,6 @@ IGL_INLINE void igl::opengl::ViewerData::set_visible(bool value, unsigned int co
         is_visible &= ~core_id;
 }
 
-//IGL_INLINE void igl::opengl::ViewerData::copy_options(const ViewerCore &from, const ViewerCore &to)
-//{
-//  to.set(show_overlay      , from.is_set(show_overlay)      );
-//  to.set(show_overlay_depth, from.is_set(show_overlay_depth));
-//  to.set(show_texture      , from.is_set(show_texture)      );
-//  to.set(show_faces        , from.is_set(show_faces)        );
-//  to.set(show_lines        , from.is_set(show_lines)        );
-//}
 
 IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd& C)
 {
@@ -735,7 +399,6 @@ IGL_INLINE void igl::opengl::ViewerData::add_edges(const Eigen::MatrixXd& P1, co
         P1_temp = P1;
         P2_temp = P2;
     }
-
     int lastid = lines.rows();
     lines.conservativeResize(lines.rows() + P1_temp.rows(), 9);
     for (unsigned i = 0; i < P1_temp.rows(); ++i)
@@ -850,8 +513,6 @@ IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
 
 IGL_INLINE void igl::opengl::ViewerData::image_texture(const std::string fileName)
 {
-    //unsigned int texId;
-    //if (igl::png::texture_from_png(fileName, false, texId))
     if (igl::png::texture_from_png(fileName, texture_R, texture_G, texture_B, texture_A))
 
         dirty |= MeshGL::DIRTY_TEXTURE;

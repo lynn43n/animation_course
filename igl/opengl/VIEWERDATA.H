@@ -16,8 +16,14 @@
 //#include <Eigen/Core>
 #include <memory>
 #include <vector>
+
+//Ass1 comment
 #include <set>
-#include <igl/AABB.h>
+//end comment Ass1
+
+//Ass 2 comment
+#include "igl/AABB.h"
+//end comment Ass 2
 
 
 // Alec: This is a mesh class containing a variety of data types (normals,
@@ -44,38 +50,8 @@ namespace igl
         class ViewerData : public Movable
         {
         public:
-
-            ViewerData(); 
-            typedef std::set<std::pair<double, int> > PriorityQueue;
-
-            IGL_INLINE void drawAxis(Eigen::AlignedBox<double, 3>& alignedBox);
-
-            IGL_INLINE bool init_mesh();
-
-            IGL_INLINE void deriving_error_quadric();
-
-            IGL_INLINE void Simplification(int num_of_faces);
-
-            IGL_INLINE bool new_collapse_edge(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::MatrixXi& E, Eigen::VectorXi& EMAP, Eigen::MatrixXi& EF, Eigen::MatrixXi& EI, std::set<std::pair<double, int>>& Q, std::vector<std::set<std::pair<double, int>>::iterator>& Qit, Eigen::MatrixXd& C);
-
-            IGL_INLINE void eval_cost_places(const int mesh_id, const int e, const Eigen::MatrixXd& V, double& cost, Eigen::Vector3d& p);
-
-            //////////////////////ass4/////////////////////////////
-
-            // move the object according to the chosen direction
-            IGL_INLINE void drawAlignedBox(Eigen::AlignedBox<double, 3>&, Eigen::RowVector3d&);
-
-            // change current location by speed
-            IGL_INLINE void move();
-
-            IGL_INLINE void update_movement_type(unsigned int);
-
-            IGL_INLINE void initiate_speed();
-
-            IGL_INLINE void init();
-
-            ///////////////////////////////////////////////
-
+            ViewerData();
+            void igl::opengl::ViewerData::draw_xyzAxis(Eigen::AlignedBox<double, 3>& alignedBox);
             // Empty all fields
             IGL_INLINE void clear();
 
@@ -159,8 +135,6 @@ namespace igl
             // Clear the label data
             IGL_INLINE void clear_labels();
 
-
-
             // Computes the normals of the mesh
             IGL_INLINE void compute_normals();
 
@@ -183,8 +157,51 @@ namespace igl
             // Copy visualization options from one viewport to another
             //IGL_INLINE void copy_options(const ViewerCore &from, const ViewerCore &to);
 
+            //Project comment
+            IGL_INLINE void move();
+
+            IGL_INLINE void update_movement_type(unsigned int);
+
+            IGL_INLINE void initiate_speed(int level);
+            //end Project comment
+
+
+            //Ass1: Data Structures for Mesh simplification
+            typedef std::set<std::pair<double, int> > PriorityQueue;
+            Eigen::VectorXi EMAP;
+            Eigen::MatrixXi E;
+            Eigen::MatrixXi EF;
+            Eigen::MatrixXi EI;
+            PriorityQueue* Q;
+            std::vector<PriorityQueue::iterator >* Qit;
+            Eigen::MatrixXd C;
+            int num_collapsed;
+
+            Eigen::MatrixXd  OV; //a copy, Vertices of the current mesh (#V x 3)
+            Eigen::MatrixXi  OF; //a copy, Faces of the mesh (#F x 3)
+            std::vector <Eigen::Matrix4d> Quads; //each vertex has his Q
+            //end comment Ass1
+
+            //Ass 2 comment
+            Eigen::Vector3d moveDir = Eigen::Vector3d(-0.004, 0, 0);//initial of velocity*dircetion = (0.004*(-1,0,0))= (-0.004, 0, 0)
+            // (-1,0,0) moving the movable object to left side of X's Axe.
             void drawBox(Eigen::AlignedBox<double, 3> box, int color);
             igl::AABB<Eigen::MatrixXd, 3> tree;
+            //end Ass2 comment
+
+            Eigen::MatrixXd V; // Vertices of the current mesh (#V x 3)
+            Eigen::MatrixXi F; // Faces of the mesh (#F x 3)
+
+            //project
+            bool hasCollisioned = false;
+
+            //target movment 
+            Eigen::Vector3d speed;
+            // 0 - none, 1- basic, 2- bouncy, 4- bezier
+            unsigned int type;
+            //end project comment
+
+
             // Per face attributes
             Eigen::MatrixXd F_normals; // One normal per face
 
@@ -203,42 +220,12 @@ namespace igl
             Eigen::MatrixXd V_uv; // UV vertices
             Eigen::MatrixXi F_uv; // optional faces for UVs
 
-            //ass1
-
-             // variables for edge_flaps
-            Eigen::MatrixXi E;    // edges <index of source vertex, index of destination vertex>
-            Eigen::VectorXi EMAP; // connects faces to edges
-            Eigen::MatrixXi EF;   // connects edges to faces
-            Eigen::MatrixXi EI;   // connects edge to vertex index in triangle (0,1,2)
-            PriorityQueue* Q;     //  priority queue containing cost for every edge
-            Eigen::MatrixXd C;    //  position of the new vertex after collapsing the corresponding edge (in model coordinates).
-
-            int count_collapse;     // num of edges collapased by the decimation algorithm
-            std::vector<PriorityQueue::iterator >* Q_iterator;  // iterate over the edges
-            std::vector<Eigen::Matrix4d> Quadric;
-
-
-            Eigen::MatrixXd V;
-            Eigen::MatrixXd V_clone; // Vertices of the current mesh (#V x 3)
-            Eigen::MatrixXi F;
-            Eigen::MatrixXi F_clone; // Faces of the mesh (#F x 3)
-
-            // ass 2
-            igl::AABB<Eigen::MatrixXd, 3> kd_tree;
-
             // Texture
             Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture_R;
             Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture_G;
             Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture_B;
             Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture_A;
 
-
-            //ass4 
-
-
-            Eigen::Vector3d speed;
-            // 0 - none, 1- basic, 2- bouncy, 4- bezier
-            unsigned int type;
             // Overlays
 
             // Lines plotted over the scene
@@ -265,7 +252,6 @@ namespace igl
 
             // Invert mesh normals
             bool invert_normals;
-
 
             // Visualization options
             // Each option is a binary mask specifying on which viewport each option is set.
