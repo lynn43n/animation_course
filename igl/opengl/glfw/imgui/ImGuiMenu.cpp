@@ -10,9 +10,9 @@
 //#include "ImGuiHelpers.h"
 #include <igl/project.h>
 #include "ImGuiHelpers.h"
-
+//"C:\Users\alina\source\repos\EngineForAnimationCourse\external\imgui\imgui.h"
 #include "ImGuiMenu.h"
-#include "../imgui.h"
+#include "../imgui/imgui.h"
 #include "igl/opengl/glfw/imgui/imgui_impl_glfw.h"
 #include "igl/opengl/glfw/imgui/imgui_impl_opengl3.h"
 

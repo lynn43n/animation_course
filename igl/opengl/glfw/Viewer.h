@@ -32,6 +32,10 @@
 #define IGL_MOD_SUPER           0x0008
 
 
+//Ass1 comment
+typedef std::set<std::pair<double, int>> PriorityQueue;
+//end comment
+
 
 namespace igl
 {
@@ -42,10 +46,13 @@ namespace igl
             // GLFW-based mesh viewer
             class Viewer : public Movable
             {
+                //Ass3
+                double delta = 0.1;
+                double maxDistance;
+                //end Ass3
+
             public:
-                // UI Enumerations
-               // enum class MouseButton {Left, Middle, Right};
-               // enum class MouseMode { None, Rotation, Zoom, Pan, Translation} mouse_mode;
+               
                 virtual void Init(const std::string config);
                 virtual void Animate() {}
                 virtual void WhenTranslate() {}
@@ -53,21 +60,8 @@ namespace igl
                 virtual Eigen::Vector3d GetCameraForward() { return Eigen::Vector3d(0, 0, -1); }
                 virtual Eigen::Vector3d GetCameraUp() { return Eigen::Vector3d(0, 1, 0); }
 
-                //IGL_INLINE void init_plugins();
-                //IGL_INLINE void shutdown_plugins();
                 Viewer();
                 virtual ~Viewer();
-                void SetNewShape(int savedIndex);
-                double legalRange(double num);
-                int legalRange(int num);
-                //ASS4
-                IGL_INLINE void move_targets();
-                IGL_INLINE void Viewer::generate_target();
-                void Viewer::updateScore();
-                void Viewer::showCorrectMenu();
-                void Viewer::printTip();
-                void Viewer::printDestination();
-                void Viewer::printP();
                 // Mesh IO
                 IGL_INLINE bool load_mesh_from_file(const std::string& mesh_file_name);
                 IGL_INLINE bool save_mesh_to_file(const std::string& mesh_file_name);
@@ -77,16 +71,57 @@ namespace igl
                 IGL_INLINE bool load_scene(std::string fname);
                 IGL_INLINE bool save_scene();
                 IGL_INLINE bool save_scene(std::string fname);
-                // Draw everything
-               // IGL_INLINE void draw();
-                // OpenGL context resize
 
-                // Helper functions
 
                 IGL_INLINE void open_dialog_load_mesh();
                 IGL_INLINE void open_dialog_save_mesh();
 
                 IGL_INLINE void draw() {}
+                IGL_INLINE void init_target_object(int savedIndex);
+
+                //ASS1 comment help function mesh simplification
+                void comp_obj_quad_error();
+                void caseInverible(Eigen::Vector4d& p1, Eigen::Matrix4d& qtag, Eigen::Vector3d& p2);
+                void caseNotInvertible(Eigen::Vector3d& p1, const Eigen::MatrixXd& V, int v1, int v2, Eigen::Vector4d& p2);
+                void comp_opt_cost_position(const int e, const Eigen::MatrixXd& V, double& cost, Eigen::Vector3d& p);
+                double formula_cost(Eigen::Vector4d p_cost, Eigen::Matrix4d q12);
+                bool new_collapse_edge(Eigen::MatrixXd& V, Eigen::MatrixXi& F);
+                bool check_existance(int neighbor_index, Eigen::MatrixXi& F);
+                void initMeshdata();
+                void meshSimplification(double num_iter); // simplify mesh
+
+                //end comment Ass1
+
+                //Ass 2 comment
+                //Eigen::Vector3d moveDir = Eigen::Vector3d(-0.004, 0, 0);//initial of velocity*dircetion = (0.004*(-1,0,0))= (-0.004, 0, 0)
+                // (-1,0,0) moving the movable object to left side of X's Axe.
+                int moving_index = 0;
+                void initTreesAndDrawForCollision();
+                void setMovingButton();
+                void checkCollision();//main checkeer
+                bool recursiveCheckCollision(igl::AABB<Eigen::MatrixXd, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2, int i);//recursive checker,called by main checker
+                bool checkTermsForBoxesCollision(Eigen::AlignedBox<double, 3>& box1, Eigen::AlignedBox<double, 3>& box2, int i);//check 15 terms for boxes collision, called by recursive checker
+                //end comment Ass 2
+
+                //Ass 3
+                int link_num;
+                Eigen::RowVector4d tip_position;
+                Eigen::RowVector3d destination_position;
+                bool ikAnimation;
+                int current_picked;
+                //ASS3:
+                Eigen::Matrix4d ParentsTrans_mat4d(int index);
+                Eigen::Matrix3d ParentsInvRot_mat3d(int index);
+                void IKSimulation();
+                void toggleIKSimulation();
+                void axisFixer();
+                double distance_2Points(Eigen::Vector3d p1, Eigen::Vector3d p2);
+                void FabrikAlgo();
+                void transformfab(std::vector<Eigen::Vector3d>& p, std::vector<Eigen::Vector3d>& oldp);
+                Eigen::Vector3d getTarget();
+                Eigen::Vector3d getTipbyindex(int index);
+                // end Ass3
+
                 ////////////////////////
                 // Multi-mesh methods //
                 ////////////////////////
@@ -128,21 +163,11 @@ namespace igl
                 //
                 IGL_INLINE bool erase_mesh(const size_t index);
 
-                IGL_INLINE void Viewer::ik_solver();
-                IGL_INLINE void Viewer::fabrik_solver();
-                IGL_INLINE void Viewer::fin_rotate();
-                IGL_INLINE Eigen::Matrix4d Viewer::MakeParentTrans(int mesh_id);
-                IGL_INLINE Eigen::Matrix3d Viewer::GetParentsRotationInverse(int index);
-
                 // Retrieve mesh index from its unique identifier
                 // Returns 0 if not found
                 IGL_INLINE size_t mesh_index(const int id) const;
-                IGL_INLINE void Viewer::togleCCD();
-                void animateCCD();
-                Eigen::Matrix3d CalcParentsInverseRotation(int index);
 
                 Eigen::Matrix4d CalcParentsTrans(int indx);
-
                 inline bool SetAnimation() { return isActive = !isActive; }
             public:
                 //////////////////////
@@ -160,33 +185,33 @@ namespace igl
                 int next_data_id;
                 bool isPicked;
                 bool isActive;
-                Eigen::Vector4d tip;
-                Eigen::Vector3d destination;
+               
+                //project comment
+                
+                void Viewer::Initialize_Tree(int index);
 
-                int link_num;
-                double link_length;
 
-                bool ikAnimation;
-                bool fabricAnimation;
-                double delta;
-                bool isCCD;
-                int current_picked;
+                void Viewer::updateScore();
+                void Viewer::showCorrectMenu();
 
-                //Assignment 4 
-                int score;
-                int level; 
+                bool isResume = false;
+                bool isGameStarted = false;
+                int score = 0;
+                int level = 1;
+                int targetScore = 2;// start target score
                 bool isCollisionTarget;
                 bool isCollisionSnake;
                 bool start;
+                bool isNextLevel;
+                bool gameLost;
+
                 int snake_size;
                 bool snake_view;
                 float prev_tic;
-                bool isNextLevel;
-                bool gameLost;
-                // List of registered plugins
-            //    std::vector<ViewerPlugin*> plugins;
+                IGL_INLINE void move_targets(int level);
 
-                // Keep track of the global position of the scrollwheel
+                IGL_INLINE void generate_target(int level);
+              
                 float scroll_position;
 
             public:
