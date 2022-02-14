@@ -1,4 +1,3 @@
-
 #include <chrono>
 #include <thread>
 
@@ -7,7 +6,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <external/stb/stb_image.h>
+#include <external/stb_image.h>
 
 #include <external/glm/glm.hpp>
 #include <external/glm/gtc/matrix_transform.hpp>
@@ -25,12 +24,6 @@
 #include <external/learnopengl/shader_m.h>
 #include <external/learnopengl/camera.h>
 #include <external/learnopengl/model.h>
-#include <external/stb/igl_stb_image.cpp>
-using namespace std;
-//Ass 4
-
-#define VIEWPORT_WIDTH 1000
-#define VIEWPORT_HEIGHT 800
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, int button, int action, int modifier);
@@ -53,6 +46,7 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -79,59 +73,32 @@ Display::Display(int windowWidth, int windowHeight, const std::string& title)
 		exit(EXIT_FAILURE);
 	}
 
+	//Project comment cube map
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetMouseButtonCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetCursorPosCallback(window, mouse_move);
+	//end Project comment cube map
 
+	// tell GLFW to capture our mouse
+	// glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); xxxxxxxxxxxxxxxxxxxx
+
+	// Load OpenGL and its extensions
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		printf("Failed to load OpenGL and its extensions\n");
 		exit(EXIT_FAILURE);
 	}
-	//#if defined(DEBUG) || defined(_DEBUG)
-	//		printf("OpenGL Version %d.%d loaded\n", GLVersion.major, GLVersion.minor);
-	//		int major, minor, rev;
-	//		major = glfwGetWindowAttrib(window, GLFW_CONTEXT_VERSION_MAJOR);
-	//		minor = glfwGetWindowAttrib(window, GLFW_CONTEXT_VERSION_MINOR);
-	//		rev = glfwGetWindowAttrib(window, GLFW_CONTEXT_REVISION);
-	//		printf("OpenGL version received: %d.%d.%d\n", major, minor, rev);
-	//		printf("Supported OpenGL is %s\n", (const char*)glGetString(GL_VERSION));
-	//		printf("Supported GLSL is %s\n", (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
-	//#endif
+	
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-	//Tamir: changes from here
-	// Initialize FormScreen
-   // __viewer = this;
-	// Register callbacks
-	//glfwSetKeyCallback(window, glfw_key_callback);
-	//glfwSetCursorPosCallback(window,glfw_mouse_move);
-	//glfwSetScrollCallback(window, glfw_mouse_scroll);
-	//glfwSetMouseButtonCallback(window, glfw_mouse_press);
-	//glfwSetWindowSizeCallback(window,glfw_window_size);
 
-
-	//glfwSetCharModsCallback(window,glfw_char_mods_callback);
-	//glfwSetDropCallback(window,glfw_drop_callback);
-	// Handle retina displays (windows and mac)
-	//int width, height;
-	//glfwGetFramebufferSize(window, &width, &height);
-	//int width_window, height_window;
-	//glfwGetWindowSize(window, &width_window, &height_window);
-	//highdpi = windowWidth/width_window;
-
-	//glfw_window_size(window,width_window,height_window);
-	//opengl.init();
-//		core().align_camera_center(data().V, data().F);
-		// Initialize IGL viewer
-//		init();
-
+	
 }
 
-//ass4
 bool Display::launch_rendering(bool loop)
 {
+	//Project comment cube map
 	// glfwMakeContextCurrent(window);
 	float skyboxVertices[] = {
 		// positions          
@@ -201,12 +168,12 @@ bool Display::launch_rendering(bool loop)
 		FileSystem::getPath("tutorial/textures/skybox/front.jpg"),
 		FileSystem::getPath("tutorial/textures/skybox/back.jpg")
 
-};
+	};
 	unsigned int cubemapTexture = loadCubemap(faces);
 
 	skyboxShader.use(); // shader configuration
 	skyboxShader.setInt("skybox", 0);
-
+	//end Project comment cube map
 
 	// Rendering loop
 	const int num_extra_frames = 5;
@@ -239,7 +206,7 @@ bool Display::launch_rendering(bool loop)
 		// -----
 		processInput(window);
 
-
+		//Project comment cube map
 		//glViewport(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -275,7 +242,7 @@ bool Display::launch_rendering(bool loop)
 		// -------------------------------------------------------------------------------
 		glfwSwapBuffers(window);
 
-
+		//end Project comment cube map
 		if (renderer->core().is_animating || frame_counter++ < num_extra_frames)
 		{//motion
 			glfwPollEvents();
@@ -311,6 +278,9 @@ bool Display::launch_rendering(bool loop)
 	return EXIT_SUCCESS;
 }
 
+//Project comment cube map
+// process all input : query GLFW whether relevant keys are pressed / released this frame and react accordingly
+// ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -325,7 +295,6 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 }
-
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
@@ -369,8 +338,8 @@ void mouse_move(GLFWwindow* window, double x, double y)
 	//	}
 	//}
 	//else {
-	rndr->UpdatePosition(-x * 3, -y * 10);
-	rndr->MouseProcessing(GLFW_MOUSE_BUTTON_RIGHT);
+	//rndr->UpdatePosition(-x * 3, -y * 10);
+	//rndr->MouseProcessing(GLFW_MOUSE_BUTTON_RIGHT);
 	//}
 
 
@@ -446,7 +415,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 			rndr->GetScene()->data().MyTranslateInSystem(rndr->GetScene()->GetRotation(), Eigen::Vector3d(0, 0, yoffset));
 		else
 			rndr->GetScene()->data_list[1].MyTranslateInSystem(rndr->GetScene()->GetRotation(), Eigen::Vector3d(0, 0, yoffset));
-	//rndr->GetScene()->data_list[1].MyScale(Eigen::Vector3d(1 + y * 0.01,1 + y * 0.01,1+y*0.01));
 	else {
 		rndr->GetScene()->MyTranslate(Eigen::Vector3d(0, 0, yoffset * 0.5), true);
 		camera.ProcessMouseScroll(static_cast<float>(yoffset * 0.5));
@@ -454,9 +422,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 }
 
+//end Project comment cube map
 void Display::AddKeyCallBack(void(*keyCallback)(GLFWwindow*, int, int, int, int))
 {
-	glfwSetKeyCallback(window, (void(*)(GLFWwindow*, int, int, int, int))keyCallback);//{
+	glfwSetKeyCallback(window, (void(*)(GLFWwindow*, int, int, int, int))keyCallback);
 
 }
 
@@ -474,7 +443,7 @@ void Display::AddResizeCallBack(void (*windowsizefun)(GLFWwindow*, int, int))
 
 void Display::SetRenderer(void* userPointer)
 {
-
+	renderer = userPointer;
 	glfwSetWindowUserPointer(window, userPointer);
 
 }
@@ -500,7 +469,8 @@ Display::~Display()
 	glfwTerminate();
 }
 
-///ass4
+
+//Project comment cube map
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------
 unsigned int loadTexture(char const* path)
@@ -578,3 +548,4 @@ unsigned int loadCubemap(std::vector<std::string> faces)
 
 	return textureID;
 }
+//Project comment cube map

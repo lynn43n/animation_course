@@ -9,7 +9,7 @@ class Display
 {
 public:
 	Display(int windowWidth, int windowHeight, const std::string& title);
-	
+
 	bool launch_rendering(bool loop);
 
 	void SwapBuffers();
@@ -21,12 +21,12 @@ public:
 	void AddMouseCallBacks(void (*mousebuttonfun)(GLFWwindow*, int, int, int), void(*scrollfun)(GLFWwindow*, double, double), void (*cursorposfun)(GLFWwindow*, double, double));
 	void AddResizeCallBack(void (*windowsizefun)(GLFWwindow*, int, int));
 
-	
+
 	~Display();
-//private:
+
+	//private:
 	GLFWwindow* window;
 	void* renderer;
 	//int highdpi;  //relation between width and height?
 
 };
-
