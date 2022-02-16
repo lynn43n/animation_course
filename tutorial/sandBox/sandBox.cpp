@@ -148,34 +148,52 @@ void  SandBox::calc_next_pos()
 
 //calc from article "automatic skinning weight retargeting 2017"
 void SandBox::add_weights() {
-    
     double distance;
     int numOfV = data_list.at(0).V.rows();
     Eigen::MatrixXd V = data_list.at(0).V;
     W.resize(numOfV, 17);
 
     for (int i = 0; i < data_list[0].V.rows(); i++) {
-        double related_distance = calc_related_distance(i);// calc sum of sigma on  k=0 to n(jointd) (1/distance(i,k)^4)
+        double sum = 0;
+        double distance;
+
+        for (int j = 0; j < skelton.size(); j++) {
+            distance = abs(skelton.at(j).z() - data_list[0].V.row(i).z());
+            if (distance <= 0.1) {
+                sum += pow((1 / distance), 4);
+            }
+        }
+
+        // calc sum of sigma on  k=0 to n(jointd) (1/distance(i,k)^4)
         for (int j = 0; j < skelton.size(); j++) {
             distance = abs(skelton.at(j).z() - data_list[0].V.row(i).z());
             double temp = pow((1 / distance), 4);
-            W(i, j) = temp / related_distance;
+            W(i, j) = temp / sum;
         }
         W.row(i).normalized();
     }
 }
 
-double SandBox::calc_related_distance(int i) {
-    double sum = 0;
-    double distance;
-   
-    for (int j = 0; j < skelton.size(); j++) {
-        distance = abs(skelton.at(j).z() - data_list[0].V.row(i).z());
-        if (distance <= 0.1) {
-            sum += pow((1 / distance), 4);
-        }
+void SandBox::updateMovement() {
+    if (left) {
+        target_pose = Eigen::Vector3d(0, 0, -0.03);
     }
-    return sum;
+    else if (right) {
+        target_pose = Eigen::Vector3d(0, 0, 0.03);
+    }
+    else if (up) {
+        target_pose = Eigen::Vector3d(0, 0.03, 0);
+    }
+    else if (down) {
+        target_pose = Eigen::Vector3d(0, -0.03, 0);
+    }
+    else if (in) {
+        target_pose = Eigen::Vector3d(0.03, 0, 0);
+    }
+    else if (out) {
+        target_pose = Eigen::Vector3d(-0.03, 0, 0);
+    }
+    else {}
 }
 
 
@@ -183,17 +201,15 @@ double SandBox::calc_related_distance(int i) {
 void SandBox::levelk()
 {
     if (score >= targetScore * level) {
-
         isNextLevel = true;
         isActive = false;
 
         //remove targets
         for (int i = 1; i < data_list.size(); i++)
-        {
             data_list[i].clear();
-        }
-        
-        data_list[0].set_vertices(data_list[0].OV);// OV keeping the first vertics we had to the snake
+
+        // OV keeping the first vertics we had to the snake
+        data_list[0].set_vertices(data_list[0].OV);
 
         //retrieve original values of the snake, original vertices kept in OV variable
         for (int i = 0; i < skelton.size(); i++)
@@ -208,37 +224,15 @@ void SandBox::levelk()
         move_targets(level);
     }
 
-  
-
 }
 
 void SandBox::Animate()
 {
     if (isActive && !isResume)
     {
-        if (left) {
-            target_pose = Eigen::Vector3d(0, 0, -0.03);
-        }
-        else if (right) {
-            target_pose = Eigen::Vector3d(0, 0, 0.03);
-        }
-        else if (up) {
-            target_pose = Eigen::Vector3d(0, 0.03, 0);
-        }
-        else if (down) {
-            target_pose = Eigen::Vector3d(0, -0.03, 0);
-        }
-        else if (in) {
-            target_pose = Eigen::Vector3d(0.03, 0, 0);
-        }
-        else if (out) {
-            target_pose = Eigen::Vector3d(-0.03, 0, 0);
-        }
-
-        else {}
         //Move Snake
+        updateMovement();
 
-        
         //find current vT values
         vT[0] = skelton[0];
         for (int i = 0; i < joints_num; i++) {
@@ -246,16 +240,14 @@ void SandBox::Animate()
             vT[i] = vT[i] + ((vT[i + 1] - vT[i]) / 6);
         }
         vT[joints_num] = vT[joints_num] + target_pose;
-        
         igl::dqs(V, W, vQ, vT, U);
-
         data_list.at(0).set_vertices(U);
 
         //update skelton
-        for (int i = 0; i < skelton.size(); i++)
-        {
+        for (int i = 0; i < skelton.size(); i++) {
             skelton[i] = vT[i];
         }
+
         counter++;
         if (counter == 50) {
             counter = 0;
@@ -267,6 +259,6 @@ void SandBox::Animate()
         }
 
         levelk(); // need to prevent check collision to earn more points than target points
- 
+
     }
 }

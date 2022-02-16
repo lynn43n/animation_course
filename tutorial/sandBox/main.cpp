@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
 			else {
 				ToggleMusicButton("music", &turnMusic);
 				ImGui::SetWindowFontScale(1.5f);
-				// Expose the same variable directly ...
+				
 				ImGui::PushItemWidth(-80);
 				ImGui::Text("\n\n\n\n");
 				TextCentered("Level: %d", viewer.level);

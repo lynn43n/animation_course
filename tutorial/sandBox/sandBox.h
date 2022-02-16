@@ -18,10 +18,10 @@ public:
 	void calc_all_weights();
 	Eigen::VectorXd create_weight_vec(double w1, double w1_ind, double w2, double w2_ind);
 	void calc_next_pos();
+	double calc_related_distance(int i);
 
 	void add_weights();
-	double calc_related_distance(int i);
-	
+	void updateMovement();
 	void levelk();
 
 	Eigen::Vector3d target_pose;

@@ -222,13 +222,19 @@ namespace igl
                 size_t file_name_idx = mesh_file_name_string.rfind('/');
                 std::string name = mesh_file_name_string.substr(file_name_idx + 1);
 
+                double x = ((double)rand() / (RAND_MAX)) - 0.5;
+                double y = ((double)rand() / (RAND_MAX)) - 0.5;
+                double z = ((double)rand() / (RAND_MAX)) - 0.5;
+
                 if (name == "sphere.obj") {
                     data().type = 2;
-                    data().MyScale(Eigen::RowVector3d(0.5, 0.5, 0.5));
+                    data().MyScale(Eigen::RowVector3d(0.3, 0.3, 0.3));
+                    data().MyTranslateInSystem(GetRotation(), Eigen::Vector3d(x, y, z));
+                    //data().MyTranslate(Eigen::RowVector3d(100, 100, 100), true);
                     if (data().type == 2) {
                         
                         data().image_texture("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/textures/leopard.png");
-                        //data().set_colors(Eigen::RowVector3d(1, 0, 0));
+                       
                     }
                         
                     else
@@ -241,9 +247,12 @@ namespace igl
 
                 if (name == "cube.obj") {
                     data().type = 1;
-                    data().MyScale(Eigen::RowVector3d(0.5,0.5, 0.5));
+
+                    data().MyTranslateInSystem(GetRotation(), Eigen::Vector3d(x, y, z));
+                   
+                    data().MyScale(Eigen::RowVector3d(0.4, 0.4, 0.4));
                     if (data().type == 1)
-                        data().set_colors(Eigen::RowVector3d(0,1, 0));
+                        data().set_colors(Eigen::RowVector3d(0, 1, 0));
                     
                     else
                         data().set_colors(Eigen::RowVector3d(0, 1, 0));
@@ -257,7 +266,7 @@ namespace igl
                     data().type = 1;
 
                     if (data().type == 1)
-                        data().set_colors(Eigen::RowVector3d(0, 0,1));
+                        data().set_colors(Eigen::RowVector3d(0, 0, 1));
 
                     else
                         data().set_colors(Eigen::RowVector3d(0, 1, 0));
@@ -335,7 +344,7 @@ namespace igl
                     return false;
                 return save_scene(fname);
             }
-
+            
             IGL_INLINE bool Viewer::save_scene(std::string fname)
             {
                 igl::serialize(data(), "Data", fname.c_str());
@@ -1103,7 +1112,7 @@ namespace igl
                 if (data_list.size() > parents.size())
                 {
                     parents.push_back(-1);
-                    data_list.back().set_visible(false, 1);// delete shadow/ hishtakpoot
+                    data_list.back().set_visible(false, 1);// delete shadow
                     data_list.back().set_visible(true, 2);
                     data_list.back().show_faces = 3;
                     selected_data_index = savedIndex;

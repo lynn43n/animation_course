@@ -81,10 +81,18 @@ IGL_INLINE void igl::opengl::ViewerData::initiate_speed(int level)
     double z = ((double)rand() / (RAND_MAX)) - 0.5;
 
     //calc velocity depends on the level, multiple by constants(0.06,0.08) to slow it down little bit
-    if (type == 2)
-        speed = (0.06 * level) * Eigen::Vector3d(x / 10, y, z);
-    else
-        speed = (0.08 * level) * Eigen::Vector3d(x / 10, y / 10, z);
+    if (level <= 3) {
+        if (type == 2)
+            speed = (0.03 * level) * Eigen::Vector3d(x / 10, y, z);
+        else
+            speed = (0.04 * level) * Eigen::Vector3d(x / 10, y / 10, z);
+    }
+    else {
+        if (type == 2)
+            speed = (0.03 * 3) * Eigen::Vector3d(x / 10, y, z);
+        else
+            speed = (0.04 * 3) * Eigen::Vector3d(x / 10, y / 10, z);
+    }
 }
 //end project
 
