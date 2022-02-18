@@ -35,7 +35,8 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
     shininess(35.0f),
     id(-1),
     is_visible(1),
-    type(0)
+    type(0),
+    shape(0)
 {
     speed = Eigen::Vector3d(0, 0, 0);
     clear();
@@ -141,9 +142,10 @@ IGL_INLINE void igl::opengl::ViewerData::set_mesh(
 
     Eigen::MatrixXd V_temp;
 
-    // If V only has two columns, pad with a column of zeros
+    
     if (_V.cols() == 2)
     {
+        //pad with a column of zeros
         V_temp = Eigen::MatrixXd::Zero(_V.rows(), 3);
         V_temp.block(0, 0, _V.rows(), 2) = _V;
     }

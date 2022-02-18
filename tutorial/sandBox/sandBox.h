@@ -28,7 +28,7 @@ public:
 
 	int scale;
 	int joints_num;
-	std::vector<Eigen::Vector3d>skelton;
+	std::vector<Eigen::Vector3d>skeleton;
 	std::vector<Movable> Joints;
 	bool up;
 	bool down;
@@ -51,7 +51,7 @@ public:
 
 	RotationList origin_vQ;
 	std::vector<Eigen::Vector3d> origin_vT;
-	std::vector<Eigen::Vector3d>origin_skelton;
+	std::vector<Eigen::Vector3d>origin_skeleton;
 
 private:
 	

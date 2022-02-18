@@ -159,6 +159,9 @@ IGL_INLINE void Renderer::init(igl::opengl::glfw::Viewer* viewer, int coresNum, 
 
 //project
 //ass 4
+
+
+
 void Renderer::showCorrectMenu() {
 	if (scn->isCollisionSnake) {
 		menu->callback_draw_viewer_window();

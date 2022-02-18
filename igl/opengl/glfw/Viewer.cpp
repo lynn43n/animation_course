@@ -98,7 +98,9 @@ namespace igl
                 current_picked(-1),
                 snake_size(1),
                 snake_view(false),
-                prev_tic(0),
+                prev_tic_sphere(0),
+                prev_tic_bunny(0),
+                prev_tic_cube(0),
                 level(1),
                 score(0),
                 isCollisionSnake(false),
@@ -228,13 +230,12 @@ namespace igl
 
                 if (name == "sphere.obj") {
                     data().type = 2;
+                    data().shape = 2;
                     data().MyScale(Eigen::RowVector3d(0.3, 0.3, 0.3));
                     data().MyTranslateInSystem(GetRotation(), Eigen::Vector3d(x, y, z));
-                    //data().MyTranslate(Eigen::RowVector3d(100, 100, 100), true);
+              
                     if (data().type == 2) {
-                        
                         data().image_texture("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/textures/leopard.png");
-                       
                     }
                         
                     else
@@ -247,7 +248,7 @@ namespace igl
 
                 if (name == "cube.obj") {
                     data().type = 1;
-
+                    data().shape = 1;
                     data().MyTranslateInSystem(GetRotation(), Eigen::Vector3d(x, y, z));
                    
                     data().MyScale(Eigen::RowVector3d(0.4, 0.4, 0.4));
@@ -264,7 +265,8 @@ namespace igl
 
                 if (name == "bunny.off") {
                     data().type = 1;
-
+                    data().shape = 3;
+                    data().MyTranslateInSystem(GetRotation(), Eigen::Vector3d(x, y, z));
                     if (data().type == 1)
                         data().set_colors(Eigen::RowVector3d(0, 0, 1));
 
@@ -878,15 +880,36 @@ namespace igl
                     return false;
             }
 
+            void Viewer::printShapeScore(int shape) {
+                if (shape == 1) {
+                    cout << "You have eaten a cube and got 1 point " << endl;
+                }
+                else if (shape == 2) {
+                    cout << "You have eaten a sphere and increased score by " << shape << endl;
+                }
+                else {
+                    cout << "You have eaten a bunny and increased score by  " << shape << endl;
+                }
+            }
+
             void Viewer::checkCollision() {
-                for (int i = 1; i < data_list.size() && (score < (targetScore * level)); i++)
+                for (int i = 1; i < data_list.size() && (collected < (toCollect)); i++)
                 {
                     if (recursiveCheckCollision(&data_list[0].tree, &data_list[i].tree, i)) {
 
                         data_list[i].hasCollisioned = true;
                         data_list[i].set_visible(false, 0);
-
-                        score++;
+                        if (data_list[i].shape == 2) {
+                            score=score+2;
+                        }
+                        else if (data_list[i].shape == 3) {
+                            score = score + 3;
+                        }
+                        else {
+                            score++;
+                        }
+                        collected++;
+                        printShapeScore(data_list[i].shape);
                         data_list[i].clear();
                         cout << "Your current score is: " << score << endl;
                     }
@@ -1095,9 +1118,7 @@ namespace igl
                     next_p_cross = Eigen::Vector3d(next_p_cross4d[0], next_p_cross4d[1], next_p_cross4d[2]);
                     data_list[i + 1].MyRotate(next_p_cross, deg);
                 }
-            }
-
-            
+            }   
 
             //project, bonus part connetcted to target 
             IGL_INLINE void Viewer::move_targets(int level)
@@ -1128,29 +1149,33 @@ namespace igl
 
             IGL_INLINE void Viewer::generate_target(int level)
             {
-                float tic = static_cast<float>(glfwGetTime());
-                if (tic - prev_tic > 5) {
-                    prev_tic = tic;
-                    std::this_thread::sleep_for(std::chrono::microseconds(5));
-
-                    int savedIndex = selected_data_index;
+                float tic = static_cast<float>(glfwGetTime());  
+                int savedIndex = selected_data_index;
+                if (tic - prev_tic_bunny > 10) {
+                    prev_tic_bunny = tic;
+                    //std::this_thread::sleep_for(std::chrono::microseconds(5));
                     if (level > 2) {
                         this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/bunny.off");
-                        
-                        init_target_object(savedIndex);
-                    }
-                    if (level > 1) {
-                        this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/sphere.obj");
-                 
-                        init_target_object(savedIndex);
-                    }
-
-                    if (level > 0) {
-                        this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/cube.obj");
-                    
                         init_target_object(savedIndex);
                     }
                 }
+                tic = static_cast<float>(glfwGetTime());
+                if (tic - prev_tic_sphere > 6) {
+                    prev_tic_sphere = tic;
+                    if (level > 1) {
+                        this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/sphere.obj");
+                        init_target_object(savedIndex);
+                    }
+                }
+                tic = static_cast<float>(glfwGetTime());
+                if (tic - prev_tic_cube > 5) {
+                    prev_tic_cube = tic;
+                    if (level > 0) {
+                        this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/cube.obj");
+                        init_target_object(savedIndex);
+                    }
+                }  
+                
             }
 
 

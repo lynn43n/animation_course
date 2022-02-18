@@ -88,6 +88,7 @@ namespace igl
                 bool new_collapse_edge(Eigen::MatrixXd& V, Eigen::MatrixXi& F);
                 bool check_existance(int neighbor_index, Eigen::MatrixXi& F);
                 void initMeshdata();
+                void printShapeScore(int shape);
                 void meshSimplification(double num_iter); // simplify mesh
 
                 //end comment Ass1
@@ -196,9 +197,10 @@ namespace igl
 
                 bool isResume = false;
                 bool isGameStarted = false;
-                int score = 0;
+                int score = 0; 
                 int level = 1;
-                int targetScore = 2;// start target score
+                int toCollect = 3;
+                int collected = 0;
                 bool isCollisionTarget;
                 bool isCollisionSnake;
                 bool start;
@@ -207,7 +209,10 @@ namespace igl
 
                 int snake_size;
                 bool snake_view;
-                float prev_tic;
+                float prev_tic_sphere; 
+                float prev_tic_cube;
+                float prev_tic_bunny;
+
                 IGL_INLINE void move_targets(int level);
 
                 IGL_INLINE void generate_target(int level);

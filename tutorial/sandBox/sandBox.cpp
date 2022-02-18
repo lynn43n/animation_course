@@ -37,11 +37,11 @@ void SandBox::Init(const std::string& config)
     out = false;
 
     joints_num = 16;
-    skelton.resize(joints_num + 1);
+    skeleton.resize(joints_num + 1);
     scale = 1;
     vT.resize(17);
     vQ.resize(17);
-    origin_skelton.resize(joints_num + 1);
+    origin_skeleton.resize(joints_num + 1);
     origin_vT.resize(17);
     origin_vQ.resize(17);
 
@@ -75,20 +75,20 @@ void SandBox::Init(const std::string& config)
     MyTranslate(Eigen::Vector3d(0, 0, -1), true);
     //Find points for skeleton
     double z = -0.8 * scale;
-    for (int i = 0; i < skelton.size(); i++)
+    for (int i = 0; i < skeleton.size(); i++)
     {
-        skelton.at(i) = Eigen::Vector3d(0, 0, z);
+        skeleton.at(i) = Eigen::Vector3d(0, 0, z);
         z = z + 0.1 * scale;
     }
 
     calc_all_weights();
     data().MyRotate(Eigen::Vector3d(0, 1, 0), 3.14 / 2);
-    target_pose = skelton[joints_num];
+    target_pose = skeleton[joints_num];
     U = V;
 
-    for (int i = 0; i < skelton.size(); i++)
+    for (int i = 0; i < skeleton.size(); i++)
     {
-        origin_skelton.at(i) = skelton.at(i);
+        origin_skeleton.at(i) = skeleton.at(i);
         origin_vT.at(i) = vT.at(i);
         origin_vQ.at(i) = vQ.at(i);
     }
@@ -138,9 +138,9 @@ void  SandBox::calc_all_weights()
 
 void  SandBox::calc_next_pos()
 {
-    vT[0] = skelton[0];
+    vT[0] = skeleton[0];
     for (int i = 0; i < joints_num; i++) {
-        vT[i + 1] = skelton[i + 1];
+        vT[i + 1] = skeleton[i + 1];
         vT[i] = vT[i] + ((vT[i + 1] - vT[i]) / 6);
     }
     vT[joints_num] = vT[joints_num] + target_pose;
@@ -157,16 +157,16 @@ void SandBox::add_weights() {
         double sum = 0;
         double distance;
 
-        for (int j = 0; j < skelton.size(); j++) {
-            distance = abs(skelton.at(j).z() - data_list[0].V.row(i).z());
+        for (int j = 0; j < skeleton.size(); j++) {
+            distance = abs(skeleton.at(j).z() - data_list[0].V.row(i).z());
             if (distance <= 0.1) {
                 sum += pow((1 / distance), 4);
             }
         }
 
         // calc sum of sigma on  k=0 to n(jointd) (1/distance(i,k)^4)
-        for (int j = 0; j < skelton.size(); j++) {
-            distance = abs(skelton.at(j).z() - data_list[0].V.row(i).z());
+        for (int j = 0; j < skeleton.size(); j++) {
+            distance = abs(skeleton.at(j).z() - data_list[0].V.row(i).z());
             double temp = pow((1 / distance), 4);
             W(i, j) = temp / sum;
         }
@@ -200,7 +200,7 @@ void SandBox::updateMovement() {
 //Project levels  functions
 void SandBox::levelk()
 {
-    if (score >= targetScore * level) {
+    if (collected >= toCollect) {
         isNextLevel = true;
         isActive = false;
 
@@ -212,9 +212,9 @@ void SandBox::levelk()
         data_list[0].set_vertices(data_list[0].OV);
 
         //retrieve original values of the snake, original vertices kept in OV variable
-        for (int i = 0; i < skelton.size(); i++)
+        for (int i = 0; i < skeleton.size(); i++)
         {
-            skelton.at(i) = origin_skelton.at(i);
+            skeleton.at(i) = origin_skeleton.at(i);
             vT.at(i) = origin_vT.at(i);
             vQ.at(i) = origin_vQ.at(i);
         }
@@ -234,18 +234,18 @@ void SandBox::Animate()
         updateMovement();
 
         //find current vT values
-        vT[0] = skelton[0];
+        vT[0] = skeleton[0];
         for (int i = 0; i < joints_num; i++) {
-            vT[i + 1] = skelton[i + 1];
+            vT[i + 1] = skeleton[i + 1];
             vT[i] = vT[i] + ((vT[i + 1] - vT[i]) / 6);
         }
         vT[joints_num] = vT[joints_num] + target_pose;
         igl::dqs(V, W, vQ, vT, U);
         data_list.at(0).set_vertices(U);
 
-        //update skelton
-        for (int i = 0; i < skelton.size(); i++) {
-            skelton[i] = vT[i];
+        //update skeleton
+        for (int i = 0; i < skeleton.size(); i++) {
+            skeleton[i] = vT[i];
         }
 
         counter++;

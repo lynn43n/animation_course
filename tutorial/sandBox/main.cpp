@@ -62,6 +62,7 @@ static bool toggleButton(const char* id, SandBox& viewer) {
 			viewer.isNextLevel = false;
 			viewer.isActive = true;
 			viewer.score = 0;
+			viewer.collected = 0;
 			viewer.level = 1;
 		}else if (ImGui::Button("\t\tNext Level\t\t")) {
 			showWindow = true;
@@ -69,6 +70,7 @@ static bool toggleButton(const char* id, SandBox& viewer) {
 			viewer.isNextLevel = false;
 			viewer.isActive = true;
 			viewer.level += 1;
+			viewer.collected = 0;
 		}
 	}
 	else if (viewer.isResume) {
@@ -140,6 +142,8 @@ int main(int argc, char* argv[])
 				ImGui::Text("\n\n\n\n\n\n");
 				TextCentered("Level: %d", viewer.level);
 				TextCentered("Score: %d", viewer.score);
+				TextCentered("Items Collected: %d", viewer.collected);
+				TextCentered("Items To Collect: %d", viewer.toCollect);
 				ImGui::Text("\n\n");
 				ImGui::PopItemWidth();
 				showWindow = toggleButton("Start", viewer);
@@ -163,6 +167,8 @@ int main(int argc, char* argv[])
 				ImGui::Text("\n\n");
 				TextCentered("Level: %d", viewer.level);
 				TextCentered("Score: %d", viewer.score);
+				TextCentered("Items Collected: %d", viewer.collected);
+				TextCentered("Items To Collect: %d", viewer.toCollect);
 				ImGui::Text("\n\n");
 				ImGui::PopItemWidth();
 				showWindow = toggleButton("START OVER", viewer);
@@ -185,6 +191,9 @@ int main(int argc, char* argv[])
 				ImGui::Text("\n\n\n\n");
 				TextCentered("Level: %d", viewer.level);
 				TextCentered("Score: %d", viewer.score);
+
+				TextCentered("Items Collected: %d", viewer.collected);
+				TextCentered("Items To Collect: %d", viewer.toCollect);
 				ImGui::Text("");
 				ImGui::PopItemWidth();
 				showWindow = toggleButton("Resume", viewer);
@@ -206,6 +215,9 @@ int main(int argc, char* argv[])
 				ImGui::Text("\n\n\n\n");
 				TextCentered("Level: %d", viewer.level);
 				TextCentered("Score: %d", viewer.score);
+
+				TextCentered("Items Collected: %d", viewer.collected);
+				TextCentered("Items To Collect: %d", viewer.toCollect);
 				ImGui::PopItemWidth();
 				ImGui::End();
 			}

@@ -82,7 +82,7 @@ Display::Display(int windowWidth, int windowHeight, const std::string& title)
 	//end Project comment cube map
 
 	// tell GLFW to capture our mouse
-	// glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); xxxxxxxxxxxxxxxxxxxx
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Load OpenGL and its extensions
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -223,14 +223,14 @@ bool Display::launch_rendering(bool loop)
 		glBindVertexArray(0);
 		glDepthFunc(GL_LESS); // set depth function back to default
 		// draw background
-		//glViewport((VIEWPORT_WIDTH / 4) * 3, VIEWPORT_HEIGHT / 5, VIEWPORT_WIDTH / 4 * 1, VIEWPORT_HEIGHT / 5);
+		glViewport((VIEWPORT_WIDTH / 4) * 3, VIEWPORT_HEIGHT / 5, VIEWPORT_WIDTH / 4 * 1, VIEWPORT_HEIGHT / 5);
 
 		glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 		skyboxShader.use();
 		skyboxShader.setMat4("view", view);
 		skyboxShader.setMat4("projection", projection);
 		// skybox cube
-		//glBindVertexArray(skyboxVAO);
+		glBindVertexArray(skyboxVAO);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 36);

@@ -199,6 +199,8 @@ namespace igl
             Eigen::Vector3d speed;
             // 0 - none, 1- basic, 2- bouncy, 4- bezier
             unsigned int type;
+            //0-none 1 -cube 2- sphere 3- bunny
+            unsigned int shape;
             //end project comment
 
 
