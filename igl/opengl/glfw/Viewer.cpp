@@ -147,13 +147,7 @@ namespace igl
 
             }
 
-            //Ass4
-            void Viewer::updateScore(ViewerData obj) {
-                if (obj.type == 2)
-                    score = score + 2;
-                else
-                    score = score + 1;
-            }
+            
 
 
 
@@ -241,7 +235,7 @@ namespace igl
 
                 if (name == "sphere.obj") {
                     data().update_movement_type(2);
-
+                    data().shape = 2;
                     if (data().type == 2)
                         data().set_colors(Eigen::RowVector3d(1, 0, 0));
                     else
@@ -254,9 +248,9 @@ namespace igl
 
                 if (name == "cube.obj") {
                     data().update_movement_type(1);
-
+                    data().shape = 1;
                     if (data().type == 1)
-                        data().set_colors(Eigen::RowVector3d(1, 0, 0));
+                        data().set_colors(Eigen::RowVector3d(0, 1, 0));
                     else
                         data().set_colors(Eigen::RowVector3d(0, 1, 0));
 
@@ -267,9 +261,9 @@ namespace igl
 
                 if (name == "bunny.off") {
                     data().update_movement_type(1);
-
+                    data().shape = 3;
                     if (data().type == 1)
-                        data().set_colors(Eigen::RowVector3d(1, 0, 1));
+                        data().set_colors(Eigen::RowVector3d(0, 0, 1));
                     else
                         data().set_colors(Eigen::RowVector3d(0, 1, 0));
 
@@ -332,6 +326,20 @@ namespace igl
                 return true;
             }
 
+            void Viewer::printShapeScore(int shape) {
+                if (shape == 1) {
+                    score = score + 1;
+                    cout << "You have eaten a cube and got 1 point " << endl;
+                }
+                else if (shape == 2) {
+                    score = score + 2;
+                    cout << "You have eaten a sphere and increased score by " << shape << endl;
+                }
+                else {
+                    score = score + 3;
+                    cout << "You have eaten a bunny and increased score by  " << shape << endl;
+                }
+            }
             IGL_INLINE bool Viewer::load_scene()
             {
                 std::string fname = igl::file_dialog_open();
@@ -1113,21 +1121,20 @@ namespace igl
             void Viewer::checkCollision() {
 
                 //for (int i = 1; i < data_list.size() && (score < (targetScore * level)); i++)
-                for (int i = 1; i < data_list.size() && (score < (targetScore * level)); i++)
+                for (int i = 1; i < data_list.size() && (collected < toCollect); i++)
                 {
                     //Project comment
                     for (int curr_box = 0; curr_box < snakejointBoxvec.size(); curr_box++)
                     {
-
-                        //if (recursiveCheckCollision(&data_list[0].tree, &data_list[i].tree, i, curr_box)) {
                         if (recursiveCheckCollision(&snakejointBoxvec[curr_box], &data_list[i].tree, i, curr_box)) {
-                            PlaySound(TEXT("C:/Users/97254/Desktop/run_animation2/Animation3D/tutorial/sandBox/SnakeSound.wav"), NULL, SND_NODEFAULT | SND_ASYNC);
+                  
                             data_list[i].hasCollisioned = true;
                             data_list[i].set_visible(false, 0);
-                            updateScore(data_list[i]);
                             data_list[i].MyTranslate(Eigen::Vector3d(0, 0, 100), true);
+                            int shape = data_list[i].shape;
                             data_list[i].clear();
-                            cout << "Nice Score!" << endl;
+                            printShapeScore(shape);
+                            collected++;
                             cout << "Your current score is: " << score << endl;
                             //break;// collide in the specific food, dont need to keep check it with other links
                         }
@@ -1392,7 +1399,6 @@ namespace igl
 
                         //project comment
                         current_obj_index = data_list.size() - 1;
-                        //data_list[current_obj_index].MyScale(Eigen::Vector3d(0.5, 0.5, 0.5));
                         if (data_list.size() > parents.size())
                             update_for_new_data(savedIndx);
                         creating_tree_and_box(current_obj_index);
@@ -1402,7 +1408,6 @@ namespace igl
                         this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/cube.obj");
                         //project comment
                         current_obj_index = data_list.size() - 1;
-                        //data_list[current_obj_index].MyScale(Eigen::Vector3d(0.8, 0.8, 0.8));
                         if (data_list.size() > parents.size())
                             update_for_new_data(savedIndx);
                         creating_tree_and_box(current_obj_index);

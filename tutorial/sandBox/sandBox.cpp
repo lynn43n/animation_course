@@ -229,8 +229,8 @@ double SandBox::calc_related_distance(int i) {
 //Project levels  functions
 void SandBox::levelk() 
 {
-    if (score >= toCollect) {
-        score = 0;
+    if (collected >= toCollect) {
+        //score = 0;
         isNextLevel = true;
         isActive = false;
         isGameStarted = false;
@@ -253,8 +253,6 @@ void SandBox::levelk()
         down = false;
         in = false;
         out = false;
-        PlaySound(TEXT("C:/Users/97254/Desktop/run_animation2/Animation3D/tutorial/sandBox/levelcomplete.wav"), NULL, SND_NODEFAULT | SND_ASYNC);
-        //PlaySound(TEXT("C:/Users/roi52/Desktop/ThreeDAnimationCourse/EngineForAnimationCourse/tutorial/sandBox/levelcomplete.wav"), NULL, SND_NODEFAULT | SND_ASYNC);
     }
     else {
         target_generator(level);
