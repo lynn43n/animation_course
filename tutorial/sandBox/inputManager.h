@@ -6,8 +6,6 @@
 void glfw_window_size(GLFWwindow* window, int width, int height)
 {
 	Renderer* rndr = (Renderer*)glfwGetWindowUserPointer(window);
-	//igl::opengl::glfw::Viewer* scn = rndr->GetScene();
-
 	rndr->post_resize(window, width, height);
 
 }
@@ -63,7 +61,11 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 		case '[':
 		case ']':
 		{
-			rndr->ChangeCamera(key);
+			if (rndr->change_camera == 0)
+				rndr->change_camera = 1;
+			else
+				rndr->change_camera = 0;
+
 			break;
 		}
 		case ';':
@@ -74,14 +76,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 			break;
 		case 'w':
 		case 'W':
-			//Ass2 comment
-			//moving in
-			//rndr->changeMovingDirection('w');
-			//end comment Ass 2
-			//rndr->TranslateCamera(Eigen::Vector3f(0, 0, 0.03f));
-
-			//Project comment
-			//W is in movment
+			
 			if (scn->isGameStarted) {
 				if (scn->up) {
 					scn->up = false;
@@ -292,8 +287,6 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 			break;
 		case 'D':
 		case 'd':
-			/*scn->destination_position = Eigen::Vector3d(scn->data_list[0].MakeTransd().col(3)[0], scn->data_list[0].MakeTransd().col(3)[1], scn->data_list[0].MakeTransd().col(3)[2]);
-			std::cout << "destination: (" << scn->destination_position << ")" << std::endl;*/
 			break;
 
 		case 'H':

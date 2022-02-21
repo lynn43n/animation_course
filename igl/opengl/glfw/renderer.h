@@ -17,7 +17,7 @@ public:
 	~Renderer();
 	IGL_INLINE void draw(GLFWwindow* window);
 	IGL_INLINE void init(igl::opengl::glfw::Viewer* scn, int coresNum, igl::opengl::glfw::imgui::ImGuiMenu* _menu);
-
+	IGL_INLINE void setSelectedCore(int index);
 	
 	std::function<bool(GLFWwindow* window)> callback_init;
 	std::function<bool(GLFWwindow* window)> callback_pre_draw;
@@ -109,6 +109,7 @@ public:
 	void Renderer::showCorrectMenu();
 	size_t selected_core_index;
 	std::vector<igl::opengl::ViewerCore> core_list;
+	int change_camera = 0;
 	//end project
 
 

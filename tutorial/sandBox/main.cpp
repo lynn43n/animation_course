@@ -231,7 +231,7 @@ int main(int argc, char* argv[])
 	renderer.init(&viewer, 3, &menu);
 
 	renderer.selected_core_index = 1;
-
+	renderer.change_camera = 0;
 	disp->launch_rendering(true);
 
 	//delete menu;

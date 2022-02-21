@@ -99,3 +99,13 @@ void Movable::RotateInSystem(Eigen::Matrix4d Mat, Eigen::Vector3d rotAxis, doubl
 	MyRotate(v.normalized(), angle);
 }
 
+void Movable::MyRotate(const Eigen::Quaterniond rot)
+{
+	Tout.rotate(rot);
+}
+
+void Movable::RotateInSystem(const Eigen::Matrix3d& mat, const Eigen::Quaterniond rot)
+{
+	Eigen::Quaterniond q = Eigen::Quaterniond(mat);
+	MyRotate((q * rot.conjugate()) * q.conjugate());
+}

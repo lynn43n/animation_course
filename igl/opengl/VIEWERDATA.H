@@ -160,8 +160,6 @@ namespace igl
             //Project comment
             IGL_INLINE void move();
 
-            IGL_INLINE void update_movement_type(unsigned int);
-
             IGL_INLINE void initiate_speed(int level);
             //end Project comment
 
@@ -201,9 +199,14 @@ namespace igl
             unsigned int type;
             //0-none 1 -cube 2- sphere 3- bunny
             unsigned int shape;
+            float ttl;
             //end project comment
 
 
+            void speed_change();
+            double random_speed();
+            void update_movement_type(unsigned int);
+            void speed_for_all_types(int level);
             // Per face attributes
             Eigen::MatrixXd F_normals; // One normal per face
 

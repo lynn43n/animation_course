@@ -77,8 +77,8 @@ namespace igl
                 IGL_INLINE void open_dialog_save_mesh();
 
                 IGL_INLINE void draw() {}
-                IGL_INLINE void init_target_object(int savedIndex);
-
+                void init_target_object(int savedIndex);
+                void Viewer::updateScore(ViewerData obj);
                 //ASS1 comment help function mesh simplification
                 void comp_obj_quad_error();
                 void caseInverible(Eigen::Vector4d& p1, Eigen::Matrix4d& qtag, Eigen::Vector3d& p2);
@@ -101,7 +101,7 @@ namespace igl
                 void setMovingButton();
                 void checkCollision();//main checkeer
                 bool recursiveCheckCollision(igl::AABB<Eigen::MatrixXd, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2, int i);//recursive checker,called by main checker
-                bool checkTermsForBoxesCollision(Eigen::AlignedBox<double, 3>& box1, Eigen::AlignedBox<double, 3>& box2, int i);//check 15 terms for boxes collision, called by recursive checker
+                bool Viewer::checkTermsForBoxesCollision(Eigen::AlignedBox<double, 3>& box1, Eigen::AlignedBox<double, 3>& box2, int i, int snake_link_index);
                 //end comment Ass 2
 
                 //Ass 3
@@ -122,7 +122,10 @@ namespace igl
                 Eigen::Vector3d getTarget();
                 Eigen::Vector3d getTipbyindex(int index);
                 // end Ass3
-
+                // ass4
+                bool recursiveCheckCollision(Eigen::AlignedBox<double, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2, int i, int snake_link_index);//recursive checker,called by main checker
+                std::vector<Movable> snake_links;
+                Eigen::Vector3d target_pose;
                 ////////////////////////
                 // Multi-mesh methods //
                 ////////////////////////
@@ -175,6 +178,11 @@ namespace igl
                 // Member variables //
                 //////////////////////
 
+                //ass4
+
+                void update_for_new_data(int savedIndx);
+                void Viewer::creating_tree_and_box(int current_obj_index);
+
                 // Alec: I call this data_list instead of just data to avoid confusion with
                 // old "data" variable.
                 // Stores all the data that should be visualized
@@ -206,17 +214,29 @@ namespace igl
                 bool start;
                 bool isNextLevel;
                 bool gameLost;
+                double snakeVelocity = 0.1;
+                double DiversityFactor_forVtCalc = 3;
+                std::vector<Eigen::AlignedBox<double, 3>> snakejointBoxvec;
 
                 int snake_size;
                 bool snake_view;
-                float prev_tic_sphere; 
+                int targetScore =3;
+                float prev_tic; 
                 float prev_tic_cube;
                 float prev_tic_bunny;
+
+                //ass4 Check
+                void targets_movement(int level);
+                void target_generator(int level);
+
+                typedef std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond> > RotationList;
+                RotationList vQ;
+                std::vector<Eigen::Vector3d> vT;
 
                 IGL_INLINE void move_targets(int level);
 
                 IGL_INLINE void generate_target(int level);
-              
+                IGL_INLINE void remove_by_ttl();
                 float scroll_position;
 
             public:

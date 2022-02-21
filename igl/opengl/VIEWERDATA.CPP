@@ -15,7 +15,7 @@
 #include "../per_vertex_normals.h"
 #include "igl/png/texture_from_png.h"
 #include <iostream>
-#define g 0.005
+#define gravity 0.005
 
 
 IGL_INLINE igl::opengl::ViewerData::ViewerData()
@@ -51,8 +51,30 @@ IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
     }
 }
 
+void igl::opengl::ViewerData::speed_change() {
 
+    MyTranslateInSystem(GetRotation(), speed);
+    if (type == 2) { //bouncing
+        speed(1) -= gravity;//creates the gravity illusion
+        if (Tout.matrix()(1, 3) < -5) //(1,3) its y position of tout matrix, -5 is random number to imaginaite all most touching the floor
+            speed(1) = -speed(1);//creates the bouncing illusion- changing direction on y axis
+    }
+}
+double igl::opengl::ViewerData::random_speed() {
+    return (((double)rand() / (RAND_MAX)) - 0.5);
+}
+void igl::opengl::ViewerData::speed_for_all_types(int level)
+{
+    double x = random_speed();
+    double y = random_speed();
+    double z = random_speed();
 
+    //calc velocity depends on the level, multiple by constants(0.06,0.08) to slow it down little bit
+    if (type == 2)//sphere- use gravity
+        speed = (0.06 * level) * Eigen::Vector3d(x / 10, y, 0);
+    else//cube or bunny- use linear movement
+        speed = (0.08 * level) * Eigen::Vector3d(x / 10, y / 10, z);
+}
 //project comment
 IGL_INLINE void igl::opengl::ViewerData::move()
 {
@@ -61,7 +83,7 @@ IGL_INLINE void igl::opengl::ViewerData::move()
     MyTranslateInSystem(GetRotation(), speed);
 
     if (type == 2) { //bouncy type, gravity movment
-        speed -= Eigen::Vector3d(0, g, 0);
+        speed -= Eigen::Vector3d(0, gravity, 0);
 
         if (Tout.matrix()(1, 3) < -5) //(1,3) its y position of tout matrix, -5 is random number to imaginaite all most touching the floor
             speed = Eigen::Vector3d(speed(0), -speed(1), speed(2));

@@ -24,6 +24,8 @@ public:
 	void Movable::RotateInSystem(Eigen::Matrix4d Mat, Eigen::Vector3d rotAxis, double angle);
 	Eigen::Vector3d Movable::GetCenter();
 
+	Eigen::Vector3d GetTranslation() const { return (Tout * Tin).matrix().block(0, 3, 3, 1); }
+
 	void MyScale(Eigen::Vector3d amt);
 
 	void SetCenterOfRotation(Eigen::Vector3d amt);
