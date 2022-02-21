@@ -250,15 +250,14 @@ void SandBox::levelk()
     else {
         
         if (level == 1) {
-            target_generator(level);
+            target_generator_cube(level);
             targets_movement(level);
         }
         else {
-
-            target_generator(level);
+            target_generator_sphere(level);
+            target_generator_cube(level);
             targets_movement(level);
         }
-        
         
     }
 }

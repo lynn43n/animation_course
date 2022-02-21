@@ -105,7 +105,6 @@ namespace igl
                 current_picked(-1),
                 snake_size(1),
                 snake_view(false),
-                prev_tic(0),
                 level(1),
                 score(0),
                 isCollisionSnake(false),
@@ -234,9 +233,6 @@ namespace igl
                     data().grid_texture();
                 }
 
-
-                //Ass1 comment, use OV, OF as copy to play with the V and F with out touch the original variables
-                //init data structure for mesh of every data object
                 data().OV = data().V;
                 data().OF = data().F;
 
@@ -250,13 +246,13 @@ namespace igl
 
                 double x = (distr(gen) - 50.0) / 10.0;
                 double y = (distr(gen) - 50.0) / 10.0;
-                double z = (distr(gen) - 50.0) / 10.0;
+                double z = (distr(gen) - 50.0) /50.0;
 
                 if (name == "sphere.obj") {
                     data().update_movement_type(2);
                     data().shape = 2;
                     data().MyTranslateInSystem(GetRotation(), Eigen::Vector3d(x, y, z));
-                    data().MyScale(Eigen::RowVector3d(0.8, 0.8, 0.8));
+                    data().MyScale(Eigen::RowVector3d(1.0, 1.0, 1.0));
                     data().ttl = tic;
                     if (data().type == 2)
                         data().set_colors(Eigen::RowVector3d(1, 0, 0));
@@ -270,7 +266,7 @@ namespace igl
                     data().update_movement_type(1);
                     data().shape = 1;
                     data().ttl = tic;
-                    data().MyScale(Eigen::RowVector3d(0.8, 0.8, 0.8));
+                    data().MyScale(Eigen::RowVector3d(1.0, 1.0, 1.0));
                     data().MyTranslateInSystem(GetRotation(), Eigen::Vector3d(x, y, z));
                     if (data().type == 1)
                         data().set_colors(Eigen::RowVector3d(0, 1, 0));
@@ -388,10 +384,6 @@ namespace igl
                     return;
                 this->load_mesh_from_file(fname.c_str());
 
-                //this->load_mesh_from_file("C:/Users/97254/Desktop/run_animation2/Animation3D/tutorial/data/sphere.obj");
-                //this->load_mesh_from_file("C:/Users/roi52/Desktop/ThreeDAnimationCourse/EngineForAnimationCourse/tutorial/data/sphere.obj");
-                //project comment
-                //end comment Ass 3
             }
 
             IGL_INLINE void Viewer::open_dialog_save_mesh()
@@ -747,24 +739,7 @@ namespace igl
 
 
             //Ass 2 comment
-            void Viewer::initTreesAndDrawForCollision() {
-                //isActive = false;//make it false at the begining, so we cam control when to start the collision simulation
-                //moving the scene and the object, for start of collision simulation
-                //MyTranslate(Eigen::Vector3d(0, 0, -0.4), true);//for seening the object smaller so we have space to move more
-                //data_list[0].MyTranslate(Eigen::Vector3d(0.65, 0, 0), true);//moving the objects so they won't be on each other at initial running time
-                //data_list[1].MyTranslate(Eigen::Vector3d(-0.65, 0, 0), true);
-
-                //init the tree of both objects, and draw their bounding box
-                for (int i = 1; i < data_list.size(); i++)
-                {
-                    /*data_list[i].tree.init(data_list[i].V, data_list[i].F);
-                    igl::AABB<Eigen::MatrixXd, 3> tree_first = data_list[i].tree;
-                    Eigen::AlignedBox<double, 3> box_first = tree_first.m_box;
-                    data_list[i].drawBox(box_first, 0);*/
-                    Eigen::AlignedBox <double, 3> box = data_list[i].tree.m_box;
-                }
-
-            }
+            
 
 
 
@@ -911,44 +886,159 @@ namespace igl
                 return true;
 
             }
-          
-            bool Viewer::recursiveCheckCollision(Eigen::AlignedBox<double, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2, int i, int snake_link_index) {
-                if (checkTermsForBoxesCollision(*node1, node2->m_box, i, snake_link_index))
-                {
-                    //No children, this is a leaf, drawing the box
-                    if (node2->is_leaf())
-                    {
-                        return true;
-                    }
-                    else {
-                        //Children pointers
-                        // m_left and m_right are shared pointers in AABB class
-                        igl::AABB<Eigen::MatrixXd, 3>* n2_left = node2->is_leaf() ? node2 : node2->m_left;
-                        igl::AABB<Eigen::MatrixXd, 3>* n2_right = node2->is_leaf() ? node2 : node2->m_right;
+            IGL_INLINE bool Viewer::boxes_collide(Eigen::AlignedBox<double, 3>& firstbox, Eigen::AlignedBox<double, 3>& secondbox, int i, int j) {
+                double a0 = firstbox.sizes()[0] / 2, a1 = firstbox.sizes()[1] / 2, a2 = firstbox.sizes()[2] / 2,
+                    b0 = secondbox.sizes()[0] / 2, b1 = secondbox.sizes()[1] / 2, b2 = secondbox.sizes()[2] / 2,
+                    R0, R1, R;
+                Eigen::Matrix3d A, B, C;
+                Eigen::Vector3d D, C0, C1;
+                Eigen::RowVector3d  A0 = snake_links[j].GetRotation() * Eigen::Vector3d(1, 0, 0),
+                    A1 = snake_links[j].GetRotation() * Eigen::Vector3d(0, 1, 0),
+                    A2 = snake_links[j].GetRotation() * Eigen::Vector3d(0, 0, 1),
+                    B0 = data_list[i].GetRotation() * Eigen::Vector3d(1, 0, 0),
+                    B1 = data_list[i].GetRotation() * Eigen::Vector3d(0, 1, 0),
+                    B2 = data_list[i].GetRotation() * Eigen::Vector3d(0, 0, 1);
+                A << Eigen::RowVector3d(A0[0], A1[0], A2[0]), Eigen::RowVector3d(A0[1], A1[1], A2[1]), Eigen::RowVector3d(A0[2], A1[2], A2[2]);
+                B << Eigen::RowVector3d(B0[0], B1[0], B2[0]), Eigen::RowVector3d(B0[1], B1[1], B2[1]), Eigen::RowVector3d(B0[2], B1[2], B2[2]);
+                C = A.transpose() * B;
 
-                        //looking for every type of intersection between the children's node of each object node
-                        if (recursiveCheckCollision(node1, n2_left, i, snake_link_index) ||
-                            recursiveCheckCollision(node1, n2_right, i, snake_link_index) ||
-                            recursiveCheckCollision(node1, n2_left, i, snake_link_index) ||
-                            recursiveCheckCollision(node1, n2_right, i, snake_link_index))
-                            return true;
-                        else
-                            return false;
-                    }
-                }
-                else
-                    return false;
+                Eigen::Vector4d C0_4cord = snake_links[j].MakeTransScaled() * Eigen::Vector4d(firstbox.center()[0], firstbox.center()[1], firstbox.center()[2], 1);
+                Eigen::Vector4d C1_4cord = data_list[i].MakeTransScaled() * Eigen::Vector4d(secondbox.center()[0], secondbox.center()[1], secondbox.center()[2], 1);
+
+                C0 = Eigen::Vector3d(C0_4cord[0], C0_4cord[1], C0_4cord[2]);
+                C1 = Eigen::Vector3d(C1_4cord[0], C1_4cord[1], C1_4cord[2]);
+
+                D = C1 - C0;
+
+                //Table case 1
+                R0 = a0;
+                R1 = (b0 * abs(C(0, 0))) + (b1 * abs(C(0, 1))) + (b2 * abs(C(0, 2)));
+                R = abs(A0.dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 2
+                R0 = a1;
+                R1 = (b0 * abs(C(1, 0))) + (b1 * abs(C(1, 1))) + (b2 * abs(C(1, 2)));
+                R = abs(A1.dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 3
+                R0 = a2;
+                R1 = (b0 * abs(C(2, 0))) + (b1 * abs(C(2, 1))) + (b2 * abs(C(2, 2)));
+                R = abs(A2.dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 4
+                R0 = (a0 * abs(C(0, 0))) + (a1 * abs(C(1, 0))) + (a2 * abs(C(2, 0)));
+                R1 = b0;
+                R = abs(B0.dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 5
+                R0 = (a0 * abs(C(0, 1))) + (a1 * abs(C(1, 1))) + (a2 * abs(C(2, 1)));
+                R1 = b1;
+                R = abs(B1.dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 6
+                R0 = (a0 * abs(C(0, 2))) + (a1 * abs(C(1, 2))) + (a2 * abs(C(2, 2)));
+                R1 = b2;
+                R = abs(B2.dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 7
+                R0 = (a1 * abs(C(2, 0))) + (a2 * abs(C(1, 0)));
+                R1 = (b1 * abs(C(0, 2))) + (b2 * abs(C(0, 1)));
+                R = abs((C(1, 0) * A2).dot(D) - (C(2, 0) * A1).dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 8
+                R0 = (a1 * abs(C(2, 1))) + (a2 * abs(C(1, 1)));
+                R1 = (b0 * abs(C(0, 2))) + (b2 * abs(C(0, 0)));
+                R = abs((C(1, 1) * A2).dot(D) - (C(2, 1) * A1).dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 9
+                R0 = (a1 * abs(C(2, 2))) + (a2 * abs(C(1, 2)));
+                R1 = (b0 * abs(C(0, 1))) + (b1 * abs(C(0, 0)));
+                R = abs((C(1, 2) * A2).dot(D) - (C(2, 2) * A1).dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 10
+                R0 = (a0 * abs(C(2, 0))) + (a2 * abs(C(0, 0)));
+                R1 = (b1 * abs(C(1, 2))) + (b2 * abs(C(1, 1)));
+                R = abs((C(2, 0) * A0).dot(D) - (C(0, 0) * A2).dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 11
+                R0 = (a0 * abs(C(2, 1))) + (a2 * abs(C(0, 1)));
+                R1 = (b0 * abs(C(1, 2))) + (b2 * abs(C(1, 0)));
+                R = abs((C(2, 1) * A0).dot(D) - (C(0, 1) * A2).dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 12
+                R0 = (a0 * abs(C(2, 2))) + (a2 * abs(C(0, 2)));
+                R1 = (b0 * abs(C(1, 1))) + (b1 * abs(C(1, 0)));
+                R = abs((C(2, 2) * A0).dot(D) - (C(0, 2) * A2).dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 13
+                R0 = (a0 * abs(C(1, 0))) + (a1 * abs(C(0, 0)));
+                R1 = (b1 * abs(C(2, 2))) + (b2 * abs(C(2, 1)));
+                R = abs((C(0, 0) * A1).dot(D) - (C(1, 0) * A0).dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 14
+                R0 = (a0 * abs(C(1, 1))) + (a1 * abs(C(0, 1)));
+                R1 = (b0 * abs(C(2, 2))) + (b2 * abs(C(2, 0)));
+                R = abs((C(0, 1) * A1).dot(D) - (C(1, 1) * A0).dot(D));
+
+                if (R > R0 + R1) return false;
+
+                //Table case 15
+                R0 = (a0 * abs(C(1, 2))) + (a1 * abs(C(0, 2)));
+                R1 = (b0 * abs(C(2, 1))) + (b1 * abs(C(2, 0)));
+                R = abs((C(0, 2) * A1).dot(D) - (C(1, 2) * A0).dot(D));
+
+                if (R > R0 + R1) return false;
+
+                return true;
             }
 
-
+            IGL_INLINE bool Viewer::treeNodesCollide(AABB<Eigen::MatrixXd, 3>& firstObjNode, Eigen::AlignedBox<double, 3>& secondObjNode, int i, int j) {
+                if (boxes_collide(firstObjNode.m_box, secondObjNode, i, j)) {
+                    if (firstObjNode.is_leaf()) {
+                        
+                        return true;
+                    }
+                    else
+                        return treeNodesCollide(*firstObjNode.m_left, secondObjNode, i, j) ||
+                        treeNodesCollide(*firstObjNode.m_right, secondObjNode, i, j);
+                }
+                return false;
+            }
+       
             void Viewer::checkCollision() {
 
                 for (int i = 1; i < data_list.size() && (collected < toCollect); i++)
                 {
                     //Project comment
-                    for (int curr_box = 0; curr_box < snakejointBoxvec.size(); curr_box++)
+                    for (int curr_box = 10; curr_box < snakejointBoxvec.size(); curr_box++)
                     {
-                        if (recursiveCheckCollision(&snakejointBoxvec[curr_box], &data_list[i].tree, i, curr_box)) {
+                        if (treeNodesCollide( data_list[i].tree, snakejointBoxvec[curr_box], i, curr_box)) {
                   
                             data_list[i].hasCollisioned = true;
                             data_list[i].set_visible(false, 0);
@@ -1180,17 +1270,6 @@ namespace igl
 
         
 
-            void Viewer::update_for_new_data(int savedIndx) {
-
-                parents.push_back(-1);
-                data_list.back().set_visible(false, 1);// delete shadow/ hishtakpoot
-                data_list.back().set_visible(true, 2);
-                data_list.back().show_faces = 3;
-                selected_data_index = savedIndx;
-
-                int last_index = data_list.size() - 1;
-            }
-
             void Viewer::creating_tree_and_box(int current_obj_index) {
                 //creating bounding box  for evert food created
                 data_list[current_obj_index].tree.init(data_list[current_obj_index].V, data_list[current_obj_index].F);
@@ -1204,14 +1283,13 @@ namespace igl
                 data_list[current_obj_index].tree.init(data_list[current_obj_index].V, data_list[current_obj_index].F);
               
             }
-            void Viewer::target_generator(int level)
+            void Viewer::target_generator_sphere(int level)
             {
                 float curr_tic = static_cast<float>(glfwGetTime());
-                if (curr_tic - prev_tic > 5*level) {
-                    prev_tic = curr_tic;
-                    std::this_thread::sleep_for(std::chrono::microseconds(5));                  
+                if (curr_tic - prev_tic_sphere > 5 * level) {
+                    prev_tic_sphere = curr_tic;
+                    std::this_thread::sleep_for(std::chrono::microseconds(5));
 
-                    if (level > 1) {
                         this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/sphere.obj");
                         if (data_list.size() > parents.size())
                         {
@@ -1222,9 +1300,21 @@ namespace igl
                         }
 
                         data().tree.init(data().V, data().F);
-                    }
+                    
 
-                    if (level > 0) {
+                    
+                }
+            }
+
+
+            void Viewer::target_generator_cube(int level)
+            {
+                float curr_tic = static_cast<float>(glfwGetTime());
+                if (curr_tic - prev_tic_cube > 5 * level) {
+                    prev_tic_cube = curr_tic;
+                    std::this_thread::sleep_for(std::chrono::microseconds(5));
+
+
                         this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/cube.obj");
                         //project comment
                         if (data_list.size() > parents.size())
@@ -1235,13 +1325,9 @@ namespace igl
                             data_list.back().show_faces = 3;
                         }
                         data().tree.init(data().V, data().F);
-                    }
+                    
                 }
             }
-
-
-
-            //end comment project
 
 
 

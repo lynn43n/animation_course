@@ -42,7 +42,7 @@ public:
 	int scale;
 	int joints_num;
 	std::vector<Eigen::Vector3d>snake_skeleton;
-	//std::vector<Movable> Joints;
+	std::vector<Movable> Joints;
 	//boolean variable for movment
 	bool up;
 	bool down;

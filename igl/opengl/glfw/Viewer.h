@@ -101,7 +101,8 @@ namespace igl
                 bool recursiveCheckCollision(igl::AABB<Eigen::MatrixXd, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2, int i);//recursive checker,called by main checker
                 bool Viewer::checkTermsForBoxesCollision(Eigen::AlignedBox<double, 3>& box1, Eigen::AlignedBox<double, 3>& box2, int i, int snake_link_index);
                 //end comment Ass 2
-
+                void Viewer::target_generator_sphere(int level);
+                void Viewer::target_generator_cube(int level);
                 //Ass 3
                 int link_num;
                 Eigen::RowVector4d tip_position;
@@ -121,7 +122,7 @@ namespace igl
                 Eigen::Vector3d getTipbyindex(int index);
                 // end Ass3
                 // ass4
-                bool recursiveCheckCollision(Eigen::AlignedBox<double, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2, int i, int snake_link_index);//recursive checker,called by main checker
+                bool Viewer::recursiveCheckCollision(igl::AABB<Eigen::MatrixXd, 3>& node1, Eigen::AlignedBox<double, 3>& node2, int i, int snake_link_index);//recursive checker,called by main checker
                 std::vector<Movable> snake_links;
                 Eigen::Vector3d target_pose;
                 ////////////////////////
@@ -220,8 +221,8 @@ namespace igl
                 bool snake_view;
                 int targetScore =3;
                 float prev_tic; 
-                float prev_tic_cube;
-                float prev_tic_bunny;
+                float prev_tic_cube=0;
+                float prev_tic_sphere=0;
 
                 //ass4 Check
                 void targets_movement(int level);
@@ -232,7 +233,8 @@ namespace igl
                 std::vector<Eigen::Vector3d> vT;
                 IGL_INLINE void Viewer::init_target_object(int savedIndex);
                 IGL_INLINE void move_targets(int level);
-
+                IGL_INLINE bool Viewer::boxes_collide(Eigen::AlignedBox<double, 3>& firstbox, Eigen::AlignedBox<double, 3>& secondbox, int i, int j);
+                IGL_INLINE bool Viewer::treeNodesCollide(AABB<Eigen::MatrixXd, 3>& firstObjNode, Eigen::AlignedBox<double, 3>& secondObjNode, int i, int j);
                 IGL_INLINE void generate_target(int level);
                 IGL_INLINE void remove_by_ttl();
                 float scroll_position;

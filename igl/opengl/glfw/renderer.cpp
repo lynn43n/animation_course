@@ -40,7 +40,7 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 {
 	using namespace std;
 	using namespace Eigen;
-
+	
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 
@@ -72,15 +72,10 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 		{
 
 			if (mesh.is_visible & core.id)
-			{// for kinematic chain change scn->MakeTrans to parent matrix
-				//Project comment
-				//if (selected_core_index == 0) {
+			{
 				if (change_camera != 0) {
 					//new camera
-					//Eigen::Matrix4d headTransMat = scn->MakeTransd() * scn->CalcParentsTrans(0) * scn->data(0).MakeTransd();
-					//Eigen::Vector3d curr_vt = scn->vT[scn->vT.size() - 1]; //(headTransMat.block(0, 0, 3, 3) * Eigen::Vector3d(0, -1, 0)).block(0, 0, 3, 1).cast<float>();
-					//core.camera_eye = Eigen::Vector3d(curr_vt(2), curr_vt(1), curr_vt(0)).cast<float>();
-
+					
 					if (scn->target_pose(2) > 0) {
 						core.camera_eye = scn->target_pose.cast<float>() + Eigen::Vector3f(-M_PI * 1.25, 0, M_PI / 2);
 
@@ -99,8 +94,7 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 
 					cout << scn->target_pose.cast<float>() << endl;
 
-					core.camera_translation = -scn->snake_links[scn->snake_links.size() - 1].GetTranslation().cast<float>();// ](headTransMat* Eigen::Vector4d(0, 0.8, 0.8, -1)).block(0, 0, 3, 1).cast<float>();
-					
+					core.camera_translation = -scn->snake_links[scn->snake_links.size() - 1].GetTranslation().cast<float>();
 				}
 				else {
 					core.camera_translation = prev_camera_translation;
@@ -112,6 +106,8 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 
 				}
 				else {
+					
+					
 					core.draw(scn->MakeTransScale() * scn->CalcParentsTrans(indx).cast<float>(), mesh);
 				}
 					
@@ -121,8 +117,7 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 	}
 	if (menu)
 	{
-		menu->post_draw();
-
+		menu->post_draw();		
 	}
 
 }
