@@ -56,7 +56,7 @@ static bool toggleButton(const char* id, SandBox& viewer) {
 		enable_7m = false;
 	}
 	else if (viewer.isNextLevel) {
-		if (ImGui::Button("\t\tStart Over\t\t")) {
+		if (ImGui::Button("\t\t\tStart Over\t\t\t")) {
 			showWindow = true;
 			enable_7m = true;
 			viewer.isNextLevel = false;
@@ -64,7 +64,7 @@ static bool toggleButton(const char* id, SandBox& viewer) {
 			viewer.score = 0;
 			viewer.collected = 0;
 			viewer.level = 1;
-		}else if (ImGui::Button("\t\tNext Level\t\t")) {
+		}else if (ImGui::Button("\t\t\tNext Level\t\t\t")) {
 			showWindow = true;
 			enable_7m = true;
 			viewer.isNextLevel = false;
@@ -74,7 +74,7 @@ static bool toggleButton(const char* id, SandBox& viewer) {
 		}
 	}
 	else if (viewer.isResume) {
-		if (ImGui::Button("\t\tResume Game\t\t")) {
+		if (ImGui::Button("\t\t\tResume Game\t\t\t")) {
 			showWindow = true;
 			enable_7m = true;
 			viewer.isActive = true;
@@ -85,7 +85,7 @@ static bool toggleButton(const char* id, SandBox& viewer) {
 	}
 	else
 	{
-		if (ImGui::Button("\t\tStart Game\t\t"))
+		if (ImGui::Button("\t\t\tStart Game\t\t\t"))
 			enable_7m = true;
 	}
 	return showWindow;

@@ -80,6 +80,7 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 
 					}
 					else if (scn->target_pose(2) < 0) {
+						//the change in position
 						core.camera_eye = scn->target_pose.cast<float>() + Eigen::Vector3f(M_PI * 1.25, 0, M_PI / 2);
 					}
 					else if (scn->target_pose(1) > 0)
@@ -98,11 +99,8 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 				}
 				//end comment Project
 				if (mesh.toKill == true) {
-
 				}
 				else {
-					
-					
 					core.draw(scn->MakeTransScale() * scn->CalcParentsTrans(indx).cast<float>(), mesh);
 				}
 					
@@ -154,11 +152,9 @@ IGL_INLINE void Renderer::init(igl::opengl::glfw::Viewer* viewer, int coresNum, 
 		}
 
 		core_index(left_view - 1);
-		//Project comment
 		prev_camera_translation = core().camera_translation;
 		prev_camera_eye = core().camera_eye;
 		prev_camera_up = core().camera_up;
-		//Project comment end
 	}
 
 
@@ -166,7 +162,6 @@ IGL_INLINE void Renderer::init(igl::opengl::glfw::Viewer* viewer, int coresNum, 
 	{
 		menu->callback_draw_viewer_menu = [&]()
 		{
-			
 			menu->callback_draw_custom_window();
 		};
 	}
