@@ -16,28 +16,17 @@ public:
 	~SandBox();
 	void Init(const std::string& config);
 	double doubleVariable;
-	//Project comment
-	/*void initDataStructure(Eigen::MatrixXd&, Eigen::MatrixXi&);*/
-	//void setVelocity(Eigen::Vector3d dir);
 
-	//----------------------------------Project----------------------------------
 	void calc_all_weights();
 	Eigen::VectorXd create_weight_vec(double w1, double w1_ind, double w2, double w2_ind);
 	void calc_next_pos();
 
-	/////////////////
 	void add_weights();
 	double calc_related_distance(int i);
 
 	void levelk();
 	void initBoundingBoxofSnakeJoints();
-	/////////////////
-	//----------------------------------Project----------------------------------
-
-	//-------------------------------Project-------------------------------
-
-
-	//Eigen::Vector3d target_pose;
+	void SandBox::updateMovement();
 
 	int scale;
 	int joints_num;
@@ -72,13 +61,8 @@ public:
 	RotationList origin_vQ;
 	std::vector<Eigen::Vector3d> origin_vT;
 	std::vector<Eigen::Vector3d>origin_snake_skeleton;
-	//std::vector<Movable> snake_links;
+
 	void drawsnakejointBox(Eigen::AlignedBox<double, 3> box, int color);
-	//std::vector<Eigen::AlignedBox<double, 3>> snakejointBoxvec;
-
-
-
-	//-------------------------------Project-------------------------------
 
 
 	//end comment Project

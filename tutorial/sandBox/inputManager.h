@@ -61,11 +61,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 		case '[':
 		case ']':
 		{
-			if (rndr->change_camera == 0)
-				rndr->change_camera = 1;
-			else
-				rndr->change_camera = 0;
-
+			(rndr->change_camera == 0) ? rndr->change_camera = 1 : rndr->change_camera = 0;
 			break;
 		}
 		case ';':
@@ -76,7 +72,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 			break;
 		case 'w':
 		case 'W':
-			
+
 			if (scn->isGameStarted) {
 				if (scn->up) {
 					scn->up = false;
@@ -99,10 +95,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 					//scn->isActive = !scn->isActive;
 				}
 
-				if (!scn->in)
-					scn->in = true;
-				else
-					scn->in = false;
+				(!scn->in) ? scn->in = true : scn->in = false;
 				//scn->isActive = !scn->isActive;
 			}
 			// end Project comment
@@ -131,15 +124,12 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 					//scn->isActive = !scn->isActive;
 				}
 
-				if (!scn->out)
-					scn->out = true;
-				else
-					scn->out = false;
+				(!scn->out) ? scn->out = true : scn->out = false;
 				//scn->isActive = !scn->isActive;
 			}
 			//end comment Project
 			break;
-		
+
 		case GLFW_KEY_UP:
 			//rndr->TranslateCamera(Eigen::Vector3f(0, 0.01f,0));
 			if (scn->isGameStarted) {
@@ -164,10 +154,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 					//scn->isActive = !scn->isActive;
 				}
 
-				if (!scn->up)
-					scn->up = true;
-				else
-					scn->up = false;
+				(!scn->up) ? scn->up = true : scn->up = false;
 				//scn->isActive = !scn->isActive;
 			}
 
@@ -195,10 +182,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 					scn->out = false;
 				}
 
-				if (!scn->down)
-					scn->down = true;
-				else
-					scn->down = false;
+				(!scn->down) ? scn->down = true : scn->down = false;
 			}
 			break;
 		case GLFW_KEY_LEFT:
@@ -224,15 +208,11 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 					//scn->isActive = !scn->isActive;
 				}
 
-				if (!scn->left)
-					scn->left = true;
-				else
-					scn->left = false;
+				(!scn->left) ? scn->left = true : scn->left = false;
 				//scn->isActive = !scn->isActive;
 			}
 			break;
 		case GLFW_KEY_RIGHT:
-			//rndr->TranslateCamera(Eigen::Vector3f(0.01f, 0, 0));
 			if (scn->isGameStarted) {
 				if (scn->up) {
 					scn->up = false;
@@ -255,17 +235,14 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 					//scn->isActive = !scn->isActive;
 				}
 
-				if (!scn->right)
-					scn->right = true;
-				else
-					scn->right = false;
+				(!scn->right) ? scn->right = true : scn->right = false;
 				//scn->isActive = !scn->isActive;
 			}
 			break;
 			//end cpmment Project
 
 		case ' ':
-	
+
 			if (scn->isGameStarted) {
 				scn->isActive = false;//it ruined the movment
 				scn->isResume = true;
@@ -273,17 +250,17 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 			break;
 		case 'k':
 		case 'K':
-		
+
 			break;
 		case 'j':
 		case 'J':
 			//scn->moving_index = (scn->moving_index + 1) % 2;
 			break;
 
-		//Ass3
+			//Ass3
 		case'P':
 		case 'p':
-		
+
 			break;
 		case 'D':
 		case 'd':
@@ -317,7 +294,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 void Init(Display& display, igl::opengl::glfw::imgui::ImGuiMenu* menu)
 {
 	display.AddKeyCallBack(glfw_key_callback);
-	
+
 	display.AddResizeCallBack(glfw_window_size);
 	menu->init(&display);
 }

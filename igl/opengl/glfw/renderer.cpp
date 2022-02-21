@@ -74,8 +74,7 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 			if (mesh.is_visible & core.id)
 			{
 				if (change_camera != 0) {
-					//new camera
-					
+				
 					if (scn->target_pose(2) > 0) {
 						core.camera_eye = scn->target_pose.cast<float>() + Eigen::Vector3f(-M_PI * 1.25, 0, M_PI / 2);
 
@@ -89,10 +88,6 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 						core.camera_eye = scn->target_pose.cast<float>() + Eigen::Vector3f(0, M_PI * 1.25, M_PI / 2);
 					else
 						core.camera_eye = scn->target_pose.cast<float>() + Eigen::Vector3f(-M_PI * 1.25, 0, M_PI / 2);
-
-					//if(scn->target_pose())
-
-					cout << scn->target_pose.cast<float>() << endl;
 
 					core.camera_translation = -scn->snake_links[scn->snake_links.size() - 1].GetTranslation().cast<float>();
 				}

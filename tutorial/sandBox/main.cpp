@@ -85,7 +85,7 @@ static bool toggleButton(const char* id, SandBox& viewer) {
 	}
 	else
 	{
-		if (ImGui::Button("\t\tStart Game"))
+		if (ImGui::Button("\t\tStart Game\t\t"))
 			enable_7m = true;
 	}
 	return showWindow;
