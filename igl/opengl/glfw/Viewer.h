@@ -77,7 +77,6 @@ namespace igl
                 IGL_INLINE void open_dialog_save_mesh();
 
                 IGL_INLINE void draw() {}
-                void init_target_object(int savedIndex);
                 void Viewer::updateScore(ViewerData obj);
                 //ASS1 comment help function mesh simplification
                 void comp_obj_quad_error();
@@ -232,7 +231,7 @@ namespace igl
                 typedef std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond> > RotationList;
                 RotationList vQ;
                 std::vector<Eigen::Vector3d> vT;
-
+                IGL_INLINE void Viewer::init_target_object(int savedIndex);
                 IGL_INLINE void move_targets(int level);
 
                 IGL_INLINE void generate_target(int level);

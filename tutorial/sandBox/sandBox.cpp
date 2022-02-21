@@ -98,30 +98,15 @@ void SandBox::Init(const std::string &config)
 
     data().MyRotate(Eigen::Vector3d(0, 1, 0), 3.14 / 2);//rotating the snake to horizontal poistion
 
-
-    //snake_links.emplace_back();
-    //snake_links.at(0).MyTranslate(snake_skeleton.at(0), true);
-    //Joints.at(0).SetCenterOfRotation(Eigen::Vector3d(0, 0, -0.8));
-    //parentsJoints[0] = -1;
     //the 16 other joint that have parents
     printf("before changing snake links\n");
     for (int i = 0; i < 16; i++)
     {
-        //parentsJoints[i + 1] = i;
         snake_links.emplace_back();
-
-        //snake_links.at(i).MyTranslate(Eigen::Vector3d(-3, -1, 0), true);
 
         Eigen::Vector3d currect_snake_skeleton = Eigen::Vector3d(snake_skeleton.at(i)(2), snake_skeleton.at(i)(1), snake_skeleton.at(i)(0)); //snake_skeleton.at(i);// Eigen::Vector3d(snake_skeleton.at(i)(2), snake_skeleton.at(i)(1), snake_skeleton.at(i)(0));
         snake_links.at(i).MyTranslate(currect_snake_skeleton, true);
 
-        //Eigen::Quaterniond quat = Eigen::Quaterniond::FromTwoVectors(currect_snake_skeleton, Eigen::Vector3d(-3, -1, 0));//currect_snake_skeleton is new translate and Eigen::Vector3d(-3, -1, 0) still hold the old translate 
-        //snake_links.at(i).MyRotate(quat);
-
-        //snake_links.at(i).MyRotate(Eigen::Vector3d(0, 1, 0), 3.14 / 2);//rotating the snake to horizontal poistion
-        
-        //snake_links.at(i).SetCenterOfRotation(Eigen::Vector3d(0, 0, -0.8));// check if needed
-        //std::cout << parents[i + 1] <<"\n";
     }
     printf("after changing snake links\n");
 
@@ -204,11 +189,19 @@ void SandBox::add_weights() {
     W.resize(numOfV, 17);
 
     for (int i = 0; i < data_list[0].V.rows(); i++) {
-        double related_distance = calc_related_distance(i);// calc sum of sigma on  k=0 to n(jointd) (1/distance(i,k)^4)
+        double sum = 0;
+        double distance;
+
+        for (int j = 0; j < snake_skeleton.size(); j++) {
+            distance = abs(snake_skeleton.at(j).z() - data_list[0].V.row(i).z());
+            if (distance <= 0.1) {
+                sum += pow((1 / distance), 4);
+            }
+        }// calc sum of sigma on  k=0 to n(jointd) (1/distance(i,k)^4)
         for (int j = 0; j < snake_skeleton.size(); j++) {
             distance = abs(snake_skeleton.at(j).z() - data_list[0].V.row(i).z());
             double temp = pow((1 / distance), 4);
-            W(i, j) = temp / related_distance;
+            W(i, j) = temp / sum;
         }
         W.row(i).normalized();
     }
@@ -255,8 +248,17 @@ void SandBox::levelk()
         out = false;
     }
     else {
-        target_generator(level);
-        targets_movement(level);
+        if (level == 1) {
+            target_generator(level);
+            targets_movement(level);
+        }
+        else {
+
+            target_generator(level);
+            targets_movement(level);
+        }
+        
+        
     }
 }
 void SandBox::initBoundingBoxofSnakeJoints() {
@@ -269,46 +271,10 @@ void SandBox::initBoundingBoxofSnakeJoints() {
         Eigen::AlignedBox<double, 3> boxforcurrJoint;
         boxforcurrJoint = Eigen::AlignedBox<double, 3>(m, M);
         snakejointBoxvec[i - 1] = boxforcurrJoint;
-        drawsnakejointBox(snakejointBoxvec[i - 1], 0);
-
-
+        
     }
 }
 
-void SandBox::drawsnakejointBox(Eigen::AlignedBox<double, 3> box, int color) {
-    /*point_size = 10;
-    line_width = 2;*/
-    Eigen::RowVector3d colorVec;
-    if (color == 1) {
-        colorVec = Eigen::RowVector3d(255, 255, 255);//white
-    }
-    else
-        colorVec = Eigen::RowVector3d(0, 255, 0);//green
-    //parameters in order to minimize run-time
-    Eigen::RowVector3d BottomRightCeil = box.corner(box.BottomRightCeil);
-    Eigen::RowVector3d BottomRightFloor = box.corner(box.BottomRightFloor);
-    Eigen::RowVector3d BottomLeftCeil = box.corner(box.BottomLeftCeil);
-    Eigen::RowVector3d BottomLeftFloor = box.corner(box.BottomLeftFloor);
-    Eigen::RowVector3d TopRightCeil = box.corner(box.TopRightCeil);
-    Eigen::RowVector3d TopRightFloor = box.corner(box.TopRightFloor);
-    Eigen::RowVector3d TopLeftCeil = box.corner(box.TopLeftCeil);
-    Eigen::RowVector3d TopLeftFloor = box.corner(box.TopLeftFloor);
-
-    //add_edges(n1,n2,col)- draws edge from n1 to n2 in color col
-    data_list[0].add_edges(BottomLeftCeil, BottomRightCeil, colorVec);
-    data_list[0].add_edges(BottomLeftCeil, BottomLeftFloor, colorVec);
-    data_list[0].add_edges(BottomRightCeil, BottomRightFloor, colorVec);
-    data_list[0].add_edges(BottomLeftFloor, BottomRightFloor, colorVec);
-    data_list[0].add_edges(TopLeftCeil, TopRightCeil, colorVec);
-    data_list[0].add_edges(TopRightCeil, TopRightFloor, colorVec);
-    data_list[0].add_edges(TopLeftCeil, TopLeftFloor, colorVec);
-    data_list[0].add_edges(TopLeftFloor, TopRightFloor, colorVec);
-    data_list[0].add_edges(TopLeftCeil, BottomLeftCeil, colorVec);
-    data_list[0].add_edges(TopRightFloor, BottomRightFloor, colorVec);
-    data_list[0].add_edges(TopRightCeil, BottomRightCeil, colorVec);
-    data_list[0].add_edges(TopLeftFloor, BottomLeftFloor, colorVec);
-}
-//end comment Project
 
 void SandBox::Animate()
 {
@@ -333,8 +299,7 @@ void SandBox::Animate()
         calc_next_pos();//find current vT values
         igl::dqs(V, W, vQ, vT, U);
         data_list.at(0).set_vertices(U);
-       /* printf("print vT[0]\n");
-        cout << vT.at(0) << endl;*/
+
         for (int i = 0; i < snake_links.size(); i++)
         {
             //do translationns
@@ -348,19 +313,8 @@ void SandBox::Animate()
         //update skelton
         for (int i = 0; i < snake_skeleton.size(); i++)
             snake_skeleton[i] = vT[i];
-        //counter++;
-        //if (counter == 50) {
-        //    counter = 0;
-        //    creating_tree_and_box(0);//0- snake index
-        //    checkCollision();
-        //}
-        //initBoundingBoxofSnakeJoints();
-        //printf("Before collision\n");
+       
         checkCollision();
-
         levelk();
-        //end bonus bouncy targets object
-
-        //end project comment  
 	}
 }

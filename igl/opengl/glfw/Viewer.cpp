@@ -236,6 +236,8 @@ namespace igl
                 if (name == "sphere.obj") {
                     data().update_movement_type(2);
                     data().shape = 2;
+                    data().MyScale(Eigen::RowVector3d(0.3, 0.3, 0.3));
+
                     if (data().type == 2)
                         data().set_colors(Eigen::RowVector3d(1, 0, 0));
                     else
@@ -249,6 +251,8 @@ namespace igl
                 if (name == "cube.obj") {
                     data().update_movement_type(1);
                     data().shape = 1;
+
+                    data().MyScale(Eigen::RowVector3d(0.4, 0.4, 0.4));
                     if (data().type == 1)
                         data().set_colors(Eigen::RowVector3d(0, 1, 0));
                     else
@@ -779,14 +783,6 @@ namespace igl
                 A << Ax[0], Ay[0], Az[0],
                     Ax[1], Ay[1], Az[1],
                     Ax[2], Ay[2], Az[2];
-                /*printf("A rotation mat link 0\n");
-                cout << A<< endl;
-                printf("A translation of link 0\n");
-                cout << snake_links[snake_link_index].GetTranslation() << endl;*/
-
-
-
-
 
 
                 double W_A = box1.sizes()[0] / 2;//half width of A
@@ -912,195 +908,19 @@ namespace igl
                 return true;
 
             }
-            //Returns true if box 1 and box 2 collide
-            /*
-            bool Viewer::checkTermsForBoxesCollision(Eigen::AlignedBox<double, 3>& box1, Eigen::AlignedBox<double, 3>& box2, int i) {
-                double R, R0, R1;
-
-                //parameters from page 35 of "Separating Axis Theorem for Oriented Bounding Boxes"
-                //A parameters
-                Eigen::RowVector3d Ax = data_list[0].GetRotation() * Eigen::Vector3d(1, 0, 0);
-                Eigen::RowVector3d Ay = data_list[0].GetRotation() * Eigen::Vector3d(0, 1, 0);
-                Eigen::RowVector3d Az = data_list[0].GetRotation() * Eigen::Vector3d(0, 0, 1);
-                Eigen::Matrix3d A;
-                A << Ax[0], Ay[0], Az[0],
-                    Ax[1], Ay[1], Az[1],
-                    Ax[2], Ay[2], Az[2];
-                double W_A = box1.sizes()[0] / 2;//half width of A
-                double H_A = box1.sizes()[1] / 2;//half height of A
-                double D_A = box1.sizes()[2] / 2;//half depth of A
-
-                //B parameters
-                Eigen::RowVector3d Bx = data_list[i].GetRotation() * Eigen::Vector3d(1, 0, 0);
-                Eigen::RowVector3d By = data_list[i].GetRotation() * Eigen::Vector3d(0, 1, 0);
-                Eigen::RowVector3d Bz = data_list[i].GetRotation() * Eigen::Vector3d(0, 0, 1);
-                Eigen::Matrix3d B;
-                B << Bx[0], By[0], Bz[0],
-                    Bx[1], By[1], Bz[1],
-                    Bx[2], By[2], Bz[2];
-                double W_B = box2.sizes()[0] / 2;//half width of B
-                double H_B = box2.sizes()[1] / 2;//half height of B
-                double D_B = box2.sizes()[2] / 2;//half depth of B
-
-
-                Eigen::Matrix3d Rij = A.transpose() * B;
-                Eigen::Vector4f tmp1 = Eigen::Vector4f(box1.center()[0], box1.center()[1], box1.center()[2], 1);
-                tmp1 = data_list[0].MakeTransScale() * tmp1;
-                Eigen::Vector3d P_A = Eigen::Vector3d(tmp1[0], tmp1[1], tmp1[2]);//coordinate position of the center of A
-
-                Eigen::Vector4f tmp2 = Eigen::Vector4f(box2.center()[0], box2.center()[1], box2.center()[2], 1);
-                tmp2 = data_list[i].MakeTransScale() * tmp2;
-                Eigen::Vector3d P_B = Eigen::Vector3d(tmp2[0], tmp2[1], tmp2[2]);//coordinate position of the center of B
-
-                Eigen::Vector3d T = P_B - P_A;
-                //ALL CASES WERE TAKEN FROM "Separating Axis Theorem for Oriented Bounding Boxes"
-                //OPTIMIZED VERSION PAGE 35 -37
-                // Dot product = mahkpela scalarit
-                // CASE 1: Ax
-                R0 = W_A;
-                R1 = W_B * abs(Rij(0, 0)) + H_B * abs(Rij(0, 1)) + D_B * abs(Rij(0, 2));
-                R = abs(Ax.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 2: Ay
-                R0 = H_A;
-                R1 = W_B * abs(Rij(1, 0)) + H_B * abs(Rij(1, 1)) + D_B * abs(Rij(1, 2));
-                R = abs(Ay.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 3: Az
-                R0 = D_A;
-                R1 = W_B * abs(Rij(2, 0)) + H_B * abs(Rij(2, 1)) + D_B * abs(Rij(2, 2));
-                R = abs(Az.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 4: Bx
-                R0 = W_A * abs(Rij(0, 0)) + H_A * abs(Rij(1, 0)) + D_A * abs(Rij(2, 0));
-                R1 = W_B;
-                R = abs(Bx.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 5: By
-                R0 = W_A * abs(Rij(0, 1)) + H_A * abs(Rij(1, 1)) + D_A * abs(Rij(2, 1));
-                R1 = H_B;
-                R = abs(By.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 6: Bz
-                R0 = W_A * abs(Rij(0, 2)) + H_A * abs(Rij(1, 2)) + D_A * abs(Rij(2, 2));
-                R1 = D_B;
-                R = abs(Bz.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 7: Ax * Bx
-                R0 = H_A * abs(Rij(2, 0)) + D_A * abs(Rij(1, 0));
-                R1 = H_B * abs(Rij(0, 2)) + D_B * abs(Rij(0, 1));
-                R = abs(Rij(1, 0) * Az.dot(T) - Rij(2, 0) * Ay.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 8: Ax * By
-                R0 = H_A * abs(Rij(2, 1)) + D_A * abs(Rij(1, 1));
-                R1 = W_B * abs(Rij(0, 2)) + D_B * abs(Rij(0, 0));
-                R = abs(Rij(1, 1) * Az.dot(T) - Rij(2, 1) * Ay.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 9: Ax * Bz
-                R0 = H_A * abs(Rij(2, 2)) + D_A * abs(Rij(1, 2));
-                R1 = W_B * abs(Rij(0, 1)) + H_B * abs(Rij(0, 0));
-                R = abs(Rij(1, 2) * Az.dot(T) - Rij(2, 2) * Ay.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 10: Ay * Bx
-                R0 = W_A * abs(Rij(2, 0)) + D_A * abs(Rij(0, 0));
-                R1 = H_B * abs(Rij(1, 2)) + D_B * abs(Rij(1, 1));
-                R = abs(Rij(2, 0) * Ax.dot(T) - Rij(0, 0) * Az.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 11: Ay * By
-                R0 = W_A * abs(Rij(2, 1)) + D_A * abs(Rij(0, 1));
-                R1 = W_B * abs(Rij(1, 2)) + D_B * abs(Rij(1, 0));
-                R = abs(Rij(2, 1) * Ax.dot(T) - Rij(0, 1) * Az.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 12: Ay * Bz
-                R0 = W_A * abs(Rij(2, 2)) + D_A * abs(Rij(0, 2));
-                R1 = W_B * abs(Rij(1, 1)) + H_B * abs(Rij(1, 0));
-                R = abs(Rij(2, 2) * Ax.dot(T) - Rij(0, 2) * Az.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 13: Az * Bx
-                R0 = W_A * abs(Rij(1, 0)) + H_A * abs(Rij(0, 0));
-                R1 = H_B * abs(Rij(2, 2)) + D_B * abs(Rij(2, 1));
-                R = abs(Rij(0, 0) * Ay.dot(T) - Rij(1, 0) * Ax.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 14: Az * By
-                R0 = W_A * abs(Rij(1, 1)) + H_A * abs(Rij(0, 1));
-                R1 = W_B * abs(Rij(2, 2)) + D_B * abs(Rij(2, 0));
-                R = abs(Rij(0, 1) * Ay.dot(T) - Rij(1, 1) * Ax.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                // CASE 15: Az * Bz
-                R0 = W_A * abs(Rij(1, 2)) + H_A * abs(Rij(0, 2));
-                R1 = W_B * abs(Rij(2, 1)) + H_B * abs(Rij(2, 0));
-                R = abs(Rij(0, 2) * Ay.dot(T) - Rij(1, 2) * Ax.dot(T));
-                if (R > R0 + R1)
-                    return false;
-                return true;
-
-            }
-            */
-            //Recursion call for checking collision, retruns true if node1 and node2 collide (checking untill leafs recursivly)
-            //If they collide, draw the box of the leaf in each data items
-            //bool Viewer::recursiveCheckCollision(igl::AABB<Eigen::MatrixXd, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2, int i) {
-            //    if (checkTermsForBoxesCollision(node1->m_box, node2->m_box, i))
-            //    {
-            //        //No children, this is a leaf, drawing the box
-            //        if (node1->is_leaf() && node2->is_leaf())
-            //        {
-            //            //data_list[0].drawBox(node1->m_box, 1);
-            //            //data_list[1].drawBox(node2->m_box, 1);
-            //            return true;
-            //        }
-            //        else {
-            //            //Children pointers
-            //            // m_left and m_right are shared pointers in AABB class
-            //            igl::AABB<Eigen::MatrixXd, 3>* n1_left = node1->is_leaf() ? node1 : node1->m_left;
-            //            igl::AABB<Eigen::MatrixXd, 3>* n2_left = node2->is_leaf() ? node2 : node2->m_left;
-
-            //            igl::AABB<Eigen::MatrixXd, 3>* n1_right = node1->is_leaf() ? node1 : node1->m_right;
-            //            igl::AABB<Eigen::MatrixXd, 3>* n2_right = node2->is_leaf() ? node2 : node2->m_right;
-
-            //            //looking for every type of intersection between the children's node of each object node
-            //            if (recursiveCheckCollision(n1_left, n2_left, i) ||
-            //                recursiveCheckCollision(n1_left, n2_right, i) ||
-            //                recursiveCheckCollision(n1_right, n2_left, i) ||
-            //                recursiveCheckCollision(n1_right, n2_right, i))
-            //                return true;
-            //            else
-            //                return false;
-            //        }
-            //    }
-            //    else
-            //        return false;
-            //}
+          
             bool Viewer::recursiveCheckCollision(Eigen::AlignedBox<double, 3>* node1, igl::AABB<Eigen::MatrixXd, 3>* node2, int i, int snake_link_index) {
                 if (checkTermsForBoxesCollision(*node1, node2->m_box, i, snake_link_index))
                 {
                     //No children, this is a leaf, drawing the box
                     if (node2->is_leaf())
                     {
-                        //data_list[0].drawBox(node1->m_box, 1);
-                        //data_list[1].drawBox(node2->m_box, 1);
                         return true;
                     }
                     else {
                         //Children pointers
                         // m_left and m_right are shared pointers in AABB class
-                        //igl::AABB<Eigen::MatrixXd, 3>* n1_left = node1->is_leaf() ? node1 : node1->m_left;
                         igl::AABB<Eigen::MatrixXd, 3>* n2_left = node2->is_leaf() ? node2 : node2->m_left;
-
-                        //igl::AABB<Eigen::MatrixXd, 3>* n1_right = node1->is_leaf() ? node1 : node1->m_right;
                         igl::AABB<Eigen::MatrixXd, 3>* n2_right = node2->is_leaf() ? node2 : node2->m_right;
 
                         //looking for every type of intersection between the children's node of each object node
@@ -1120,7 +940,6 @@ namespace igl
 
             void Viewer::checkCollision() {
 
-                //for (int i = 1; i < data_list.size() && (score < (targetScore * level)); i++)
                 for (int i = 1; i < data_list.size() && (collected < toCollect); i++)
                 {
                     //Project comment
@@ -1136,7 +955,6 @@ namespace igl
                             printShapeScore(shape);
                             collected++;
                             cout << "Your current score is: " << score << endl;
-                            //break;// collide in the specific food, dont need to keep check it with other links
                         }
                         //project comment
                     }
@@ -1354,6 +1172,9 @@ namespace igl
                     if (data.type > 0)
                         data.speed_change();
             }
+
+        
+
             void Viewer::update_for_new_data(int savedIndx) {
 
                 parents.push_back(-1);
@@ -1372,7 +1193,23 @@ namespace igl
                 Eigen::AlignedBox<double, 3> box_first = tree_first.m_box;
             }
 
+            IGL_INLINE void Viewer::init_target_object(int savedIndex) {
+                if (data_list.size() > parents.size())
+                {
+                    parents.push_back(-1);
+                    data_list.back().set_visible(false, 1);// delete shadow
+                    data_list.back().set_visible(true, 2);
+                    data_list.back().show_faces = 3;
+                    selected_data_index = savedIndex;
 
+                    int last_index = data_list.size() - 1;
+                }
+                //creeating bounding box  for evert food created
+                int current_obj_index = data_list.size() - 1;
+                data_list[current_obj_index].tree.init(data_list[current_obj_index].V, data_list[current_obj_index].F);
+                igl::AABB<Eigen::MatrixXd, 3> tree_first = data_list[current_obj_index].tree;
+                Eigen::AlignedBox<double, 3> box_first = tree_first.m_box;
+            }
             void Viewer::target_generator(int level)
             {
                 float curr_tic = static_cast<float>(glfwGetTime());
@@ -1380,9 +1217,7 @@ namespace igl
                     prev_tic = curr_tic;
                     std::this_thread::sleep_for(std::chrono::microseconds(5));
 
-                    int savedIndx = selected_data_index;
-                    //open_dialog_load_mesh();
-                    // loading the objects we want to move in certain way
+                    int savedIndex = selected_data_index;
                     int current_obj_index = data_list.size() - 1;
 
                     if (level > 2) {
@@ -1390,8 +1225,7 @@ namespace igl
 
                         //project comment
                         if (data_list.size() > parents.size())
-                            update_for_new_data(savedIndx);
-                        creating_tree_and_box(current_obj_index);
+                            init_target_object(savedIndex);
                     }
 
                     if (level > 1) {
@@ -1400,8 +1234,7 @@ namespace igl
                         //project comment
                         current_obj_index = data_list.size() - 1;
                         if (data_list.size() > parents.size())
-                            update_for_new_data(savedIndx);
-                        creating_tree_and_box(current_obj_index);
+                            init_target_object(savedIndex);
                     }
 
                     if (level > 0) {
@@ -1409,8 +1242,7 @@ namespace igl
                         //project comment
                         current_obj_index = data_list.size() - 1;
                         if (data_list.size() > parents.size())
-                            update_for_new_data(savedIndx);
-                        creating_tree_and_box(current_obj_index);
+                            init_target_object(savedIndex);
                     }
                 }
             }
