@@ -108,8 +108,13 @@ IGL_INLINE void Renderer::draw(GLFWwindow* window)
 					core.camera_up = prev_camera_up;
 				}
 				//end comment Project
+				if (mesh.toKill == true) {
 
-				core.draw(scn->MakeTransScale() * scn->CalcParentsTrans(indx).cast<float>(), mesh);
+				}
+				else {
+					core.draw(scn->MakeTransScale() * scn->CalcParentsTrans(indx).cast<float>(), mesh);
+				}
+					
 			}
 			indx++;
 		}

@@ -72,7 +72,6 @@ namespace igl
                 IGL_INLINE bool save_scene();
                 IGL_INLINE bool save_scene(std::string fname);
 
-
                 IGL_INLINE void open_dialog_load_mesh();
                 IGL_INLINE void open_dialog_save_mesh();
 

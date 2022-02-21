@@ -248,6 +248,7 @@ void SandBox::levelk()
         out = false;
     }
     else {
+        
         if (level == 1) {
             target_generator(level);
             targets_movement(level);
@@ -316,5 +317,6 @@ void SandBox::Animate()
        
         checkCollision();
         levelk();
+        remove_by_ttl();
 	}
 }

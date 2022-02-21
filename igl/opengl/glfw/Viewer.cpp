@@ -61,6 +61,7 @@
 //project comment
 #include <Windows.h>
 #include <MMSystem.h>
+#include <random>
 #pragma comment(lib, "winmm.lib")
 //end comment project
 
@@ -148,8 +149,18 @@ namespace igl
             }
 
             
+            IGL_INLINE void Viewer::remove_by_ttl() {
+                float tic = static_cast<float>(glfwGetTime());
+                for (auto & mesh: data_list            ) {
+                    if ((mesh.ttl <= tic - 15) && mesh.type!=0) {
+                        mesh.is_visible=false;
+                        mesh.update_movement_type(0);
+                        mesh.toKill = true;
+                        //erase_mesh(i);
+                    }
 
-
+                }
+            }
 
             IGL_INLINE bool Viewer::load_mesh_from_file(
                 const std::string& mesh_file_name_string)
@@ -232,16 +243,23 @@ namespace igl
                 //project comment
                 size_t file_name_idx = mesh_file_name_string.rfind('/');
                 std::string name = mesh_file_name_string.substr(file_name_idx + 1);
+                float tic = static_cast<float>(glfwGetTime());
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<> distr(0, 100);
+
+                double x = (distr(gen) - 50.0) / 10.0;
+                double y = (distr(gen) - 50.0) / 10.0;
+                double z = (distr(gen) - 50.0) / 10.0;
 
                 if (name == "sphere.obj") {
                     data().update_movement_type(2);
                     data().shape = 2;
-                    data().MyScale(Eigen::RowVector3d(0.3, 0.3, 0.3));
-
+                    data().MyTranslateInSystem(GetRotation(), Eigen::Vector3d(x, y, z));
+                    data().MyScale(Eigen::RowVector3d(0.8, 0.8, 0.8));
+                    data().ttl = tic;
                     if (data().type == 2)
                         data().set_colors(Eigen::RowVector3d(1, 0, 0));
-                    else
-                        data().set_colors(Eigen::RowVector3d(0, 1, 0));
 
                     // if current object is a target then init its speed vector
                     if (data().type > 0)
@@ -251,27 +269,12 @@ namespace igl
                 if (name == "cube.obj") {
                     data().update_movement_type(1);
                     data().shape = 1;
-
-                    data().MyScale(Eigen::RowVector3d(0.4, 0.4, 0.4));
+                    data().ttl = tic;
+                    data().MyScale(Eigen::RowVector3d(0.8, 0.8, 0.8));
+                    data().MyTranslateInSystem(GetRotation(), Eigen::Vector3d(x, y, z));
                     if (data().type == 1)
                         data().set_colors(Eigen::RowVector3d(0, 1, 0));
-                    else
-                        data().set_colors(Eigen::RowVector3d(0, 1, 0));
-
-                    // if current object is a target then init its speed vector
-                    if (data().type > 0)
-                        data().speed_for_all_types(level);
-                }
-
-                if (name == "bunny.off") {
-                    data().update_movement_type(1);
-                    data().shape = 3;
-                    if (data().type == 1)
-                        data().set_colors(Eigen::RowVector3d(0, 0, 1));
-                    else
-                        data().set_colors(Eigen::RowVector3d(0, 1, 0));
-
-                    // if current object is a target then init its speed vector
+                   
                     if (data().type > 0)
                         data().speed_for_all_types(level);
                 }
@@ -952,6 +955,8 @@ namespace igl
                             data_list[i].MyTranslate(Eigen::Vector3d(0, 0, 100), true);
                             int shape = data_list[i].shape;
                             data_list[i].clear();
+                            data_list[i].update_movement_type(0);
+                            data_list[i].toKill = true;
                             printShapeScore(shape);
                             collected++;
                             cout << "Your current score is: " << score << endl;
@@ -1194,55 +1199,42 @@ namespace igl
             }
 
             IGL_INLINE void Viewer::init_target_object(int savedIndex) {
-                if (data_list.size() > parents.size())
-                {
-                    parents.push_back(-1);
-                    data_list.back().set_visible(false, 1);// delete shadow
-                    data_list.back().set_visible(true, 2);
-                    data_list.back().show_faces = 3;
-                    selected_data_index = savedIndex;
-
-                    int last_index = data_list.size() - 1;
-                }
-                //creeating bounding box  for evert food created
-                int current_obj_index = data_list.size() - 1;
+                                
+                int current_obj_index = data().id- 1;
                 data_list[current_obj_index].tree.init(data_list[current_obj_index].V, data_list[current_obj_index].F);
-                igl::AABB<Eigen::MatrixXd, 3> tree_first = data_list[current_obj_index].tree;
-                Eigen::AlignedBox<double, 3> box_first = tree_first.m_box;
+              
             }
             void Viewer::target_generator(int level)
             {
                 float curr_tic = static_cast<float>(glfwGetTime());
-                if (curr_tic - prev_tic > 5) {
+                if (curr_tic - prev_tic > 5*level) {
                     prev_tic = curr_tic;
-                    std::this_thread::sleep_for(std::chrono::microseconds(5));
-
-                    int savedIndex = selected_data_index;
-                    int current_obj_index = data_list.size() - 1;
-
-                    if (level > 2) {
-                        this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/bunny.obj");
-
-                        //project comment
-                        if (data_list.size() > parents.size())
-                            init_target_object(savedIndex);
-                    }
+                    std::this_thread::sleep_for(std::chrono::microseconds(5));                  
 
                     if (level > 1) {
                         this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/sphere.obj");
-
-                        //project comment
-                        current_obj_index = data_list.size() - 1;
                         if (data_list.size() > parents.size())
-                            init_target_object(savedIndex);
+                        {
+                            parents.push_back(-1);
+                            data_list.back().set_visible(false, 1);
+                            data_list.back().set_visible(true, 2);
+                            data_list.back().show_faces = 3;
+                        }
+
+                        data().tree.init(data().V, data().F);
                     }
 
                     if (level > 0) {
                         this->load_mesh_from_file("C:/Users/alina/source/repos/EngineForAnimationCourse/tutorial/data/cube.obj");
                         //project comment
-                        current_obj_index = data_list.size() - 1;
                         if (data_list.size() > parents.size())
-                            init_target_object(savedIndex);
+                        {
+                            parents.push_back(-1);
+                            data_list.back().set_visible(false, 1);
+                            data_list.back().set_visible(true, 2);
+                            data_list.back().show_faces = 3;
+                        }
+                        data().tree.init(data().V, data().F);
                     }
                 }
             }

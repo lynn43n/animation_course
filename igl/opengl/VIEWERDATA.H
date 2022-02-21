@@ -200,6 +200,7 @@ namespace igl
             //0-none 1 -cube 2- sphere 3- bunny
             unsigned int shape;
             float ttl;
+            bool toKill;
             //end project comment
 
 
